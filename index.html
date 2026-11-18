@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calculadora de números complejos</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1c5bb8">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* layout: one narrow column. Equations on top, answers right under them, loose operation and writing notes below. */
+  --paper:#f3f4f2;
+  --surface:#ffffff;
+  --ink:#15181c;
+  --muted:#5b646e;
+  --line:#d3d8dc;
+  --accent:#1c5bb8;
+  --accent-ink:#ffffff;
+  --tint:#e8eff9;
+  --warn:#b3261e;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#111316;
+    --surface:#1a1d22;
+    --ink:#eceef0;
+    --muted:#9aa3ad;
+    --line:#30353c;
+    --accent:#86b4ff;
+    --accent-ink:#0c1422;
+    --tint:#1b2940;
+    --warn:#ff8f85;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#111316;
+  --surface:#1a1d22;
+  --ink:#eceef0;
+  --muted:#9aa3ad;
+  --line:#30353c;
+  --accent:#86b4ff;
+  --accent-ink:#0c1422;
+  --tint:#1b2940;
+  --warn:#ff8f85;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--font-body);
+  font-size:16px;
+  line-height:1.45;
+  -webkit-text-size-adjust:100%;
+}
+main{
+  max-width:640px;
+  margin:0 auto;
+  padding:20px 16px 48px;
+  display:flex;
+  flex-direction:column;
+  gap:20px;
+}
+header h1{
+  margin:0 0 4px;
+  font-size:1.45rem;
+  font-weight:600;
+  letter-spacing:-0.01em;
+  text-wrap:balance;
+}
+header p{margin:0;color:var(--muted);font-size:.95rem}
+section{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:16px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+.sec-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+h2{margin:0;font-size:1rem;font-weight:600}
+.eqs{display:flex;flex-direction:column;gap:8px}
+.eq{display:grid;grid-template-columns:28px 1fr 40px;gap:8px;align-items:center}
+.eq-num{
+  width:28px;height:28px;border-radius:50%;
+  border:1.5px solid var(--ink);
+  display:grid;place-items:center;
+  font-family:var(--font-mono);font-size:.85rem;font-weight:500;
+}
+input[type="text"]{
+  width:100%;min-width:0;
+  font-family:var(--font-mono);font-size:17px;
+  color:var(--ink);background:var(--paper);
+  border:1px solid var(--line);border-radius:8px;
+  padding:11px 12px;
+}
+input[type="text"]:focus-visible{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
+input[type="text"].bad{border-color:var(--warn)}
+.eq-err{grid-column:2 / 4;color:var(--warn);font-size:.85rem;margin-top:-2px}
+.eq-err:empty{display:none}
+[hidden]{display:none !important}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;padding:3px;gap:3px;align-self:flex-start}
+.seg-btn{height:36px;padding:0 14px;border:0;border-radius:7px;background:transparent;color:var(--muted)}
+.seg-btn[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);font-weight:500}
+.blocks{display:flex;flex-direction:column;gap:14px}
+.blk{display:flex;flex-direction:column;gap:8px;padding-top:12px;border-top:1px solid var(--line)}
+.blk:first-child{border-top:0;padding-top:0}
+.blk-head{display:flex;align-items:center;gap:8px;font-size:.85rem;color:var(--muted)}
+.slots{display:grid;grid-template-columns:1fr;gap:8px}
+.slot{display:grid;grid-template-columns:14px minmax(0,1fr) 30px;align-items:center;gap:8px}
+.slot .pre{font-family:var(--font-mono);color:var(--muted);text-align:center}
+.slot .suf{font-family:var(--font-mono);font-weight:600}
+.blk .eq-err{grid-column:auto;margin-top:0}
+@media (min-width:520px){
+  .slots{grid-template-columns:1fr 1fr}
+  .slot.rhs{grid-column:1 / -1}
+}
+button{font-family:inherit;font-size:.95rem;color:inherit;cursor:pointer}
+button:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.icon-btn{
+  width:40px;height:40px;border-radius:8px;
+  background:transparent;border:1px solid var(--line);color:var(--muted);
+  font-size:1.2rem;line-height:1;
+}
+.keys{display:flex;flex-wrap:wrap;gap:6px}
+.key{
+  min-width:44px;height:40px;padding:0 10px;
+  font-family:var(--font-mono);font-size:1rem;
+  background:var(--tint);color:var(--ink);
+  border:1px solid transparent;border-radius:8px;
+}
+.key.var{background:transparent;border-color:var(--line)}
+.key:active{border-color:var(--accent)}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+.btn{
+  height:42px;padding:0 14px;border-radius:8px;
+  background:transparent;border:1px solid var(--line);
+}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:500}
+.pill{
+  font-size:.8rem;font-weight:500;
+  padding:3px 10px;border-radius:999px;
+  border:1px solid var(--line);color:var(--muted);
+  white-space:nowrap;
+}
+.pill.ok{background:var(--tint);border-color:transparent;color:var(--accent)}
+.pill.err{border-color:var(--warn);color:var(--warn)}
+.results{display:flex;flex-direction:column;gap:10px}
+.res{
+  display:grid;grid-template-columns:auto 1fr;column-gap:14px;align-items:start;
+  padding:12px 0;border-top:1px solid var(--line);
+}
+.res-lines{display:flex;flex-direction:column;gap:3px;min-width:0}
+.res:first-child{border-top:0;padding-top:0}
+.res-name{
+  font-family:var(--font-mono);font-weight:600;font-size:1.05rem;
+  min-width:44px;padding:6px 8px;text-align:center;
+  background:var(--tint);border-radius:8px;
+}
+.res-line{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;min-width:0}
+.lab{font-size:.75rem;color:var(--muted);width:78px;flex:none}
+.val{font-family:var(--font-mono);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.val.rect{font-size:1.3rem;font-weight:500}
+.val.polar{font-size:1.05rem}
+.val.time{font-size:1rem}
+.opts{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+input[type="text"].small{width:72px;height:36px;padding:0 8px;font-size:16px}
+.src-row{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:end}
+.field{display:flex;flex-direction:column;gap:4px;font-size:.8rem;color:var(--muted);min-width:0}
+.field select{height:46px;font-family:var(--font-mono);font-size:17px}
+.z-item{display:grid;grid-template-columns:1fr auto;gap:8px 10px;align-items:end;padding-top:12px;border-top:1px solid var(--line)}
+.z-out{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;min-width:0;align-self:center}
+.note{margin:0;color:var(--muted);font-size:.92rem}
+.note.err{color:var(--warn)}
+select{
+  font-family:inherit;font-size:.95rem;color:var(--ink);
+  background:var(--paper);border:1px solid var(--line);border-radius:8px;
+  height:36px;padding:0 8px;
+}
+.opt{display:flex;align-items:center;gap:8px;font-size:.9rem;color:var(--muted)}
+.howto{margin:0;display:grid;grid-template-columns:auto 1fr;gap:8px 14px;font-size:.92rem}
+.howto dt{font-family:var(--font-mono);white-space:nowrap}
+.howto dd{margin:0;color:var(--muted)}
+@media (max-width:400px){
+  .howto{grid-template-columns:1fr;gap:2px}
+  .howto dd{margin-bottom:8px}
+  .lab{width:100%}
+}
+@media (prefers-reduced-motion: no-preference){
+  .key,.btn,.icon-btn{transition:border-color .12s}
+}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Calculadora de números complejos</h1>
+    <p>Escribe las ecuaciones de nodos o mallas como quedan en el pizarrón y lee cada incógnita en forma rectangular y polar.</p>
+  </header>
+
+  <section aria-labelledby="h-eq">
+    <div class="sec-head">
+      <h2 id="h-eq">Ecuaciones</h2>
+      <span class="pill" id="status">Sin resolver</span>
+    </div>
+    <div class="seg" role="group" aria-label="Forma de capturar">
+      <button class="seg-btn" id="m-blocks" type="button" aria-pressed="true">Por casillas</button>
+      <button class="seg-btn" id="m-text" type="button" aria-pressed="false">Escrita</button>
+    </div>
+    <div class="opts" id="blk-opts">
+      <label class="opt" for="bn">Incógnitas
+        <select id="bn">
+          <option value="2" selected>2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+        </select>
+      </label>
+      <label class="opt" for="bletter">Nombre
+        <select id="bletter">
+          <option value="V" selected>V1, V2</option>
+          <option value="I">I1, I2</option>
+        </select>
+      </label>
+    </div>
+    <div class="blocks" id="blocks"></div>
+    <div class="eqs" id="eqs" hidden></div>
+    <div class="keys" id="keys" aria-label="Teclas rápidas"></div>
+    <div class="actions">
+      <button class="btn primary" id="add" type="button" hidden>Agregar ecuación</button>
+      <button class="btn" id="clear" type="button">Borrar todo</button>
+      <button class="btn" id="example" type="button">Cargar ejemplo</button>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-res">
+    <div class="sec-head">
+      <h2 id="h-res">Resultados</h2>
+      <div class="opts">
+        <label class="opt extra" for="omega" hidden>ω en rad/s
+          <input type="text" class="small" id="omega" value="4" inputmode="decimal" autocomplete="off">
+        </label>
+        <label class="opt" for="dec">Decimales
+          <select id="dec">
+            <option value="2">2</option>
+            <option value="3" selected>3</option>
+            <option value="4">4</option>
+            <option value="6">6</option>
+          </select>
+        </label>
+      </div>
+    </div>
+    <div class="results" id="results" aria-live="polite"></div>
+    <div class="actions">
+      <button class="btn" id="copy" type="button">Copiar resultados</button>
+    </div>
+  </section>
+
+  <div class="actions">
+    <button class="btn" id="more" type="button" aria-expanded="false">Más herramientas</button>
+  </div>
+
+  <section class="extra" aria-labelledby="h-src" hidden>
+    <h2 id="h-src">Fuente en seno o coseno</h2>
+    <p class="note">Pasa la fuente a fasor antes de escribirla en tus ecuaciones. El seno va 90° atrás del coseno.</p>
+    <div class="src-row">
+      <label class="field" for="src-amp">Amplitud
+        <input type="text" id="src-amp" value="10" inputmode="decimal" autocomplete="off">
+      </label>
+      <label class="field" for="src-fn">Función
+        <select id="src-fn">
+          <option value="sen" selected>sen</option>
+          <option value="cos">cos</option>
+        </select>
+      </label>
+      <label class="field" for="src-ph">Fase en grados
+        <input type="text" id="src-ph" value="0" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false">
+      </label>
+    </div>
+    <div class="results" id="src-out" aria-live="polite"></div>
+    <div class="actions">
+      <button class="btn" id="src-ins" type="button">Insertar en la ecuación</button>
+    </div>
+  </section>
+
+  <section class="extra" aria-labelledby="h-z" hidden>
+    <div class="sec-head">
+      <h2 id="h-z">Inductor y capacitor</h2>
+      <label class="opt" for="omega2">ω en rad/s
+        <input type="text" class="small" id="omega2" inputmode="decimal" autocomplete="off">
+      </label>
+    </div>
+    <p class="note">Pasa cada elemento a su impedancia. El inductor queda en jωL y el capacitor en 1/jωC.</p>
+    <div class="z-item">
+      <label class="field" for="z-l">Inductor
+        <input type="text" id="z-l" value="1" inputmode="decimal" autocomplete="off">
+      </label>
+      <label class="field" for="z-lu">Unidad
+        <select id="z-lu">
+          <option value="1" selected>H</option>
+          <option value="1e-3">mH</option>
+          <option value="1e-6">µH</option>
+        </select>
+      </label>
+      <div class="z-out" id="z-l-out" aria-live="polite"></div>
+      <button class="btn" id="z-l-ins" type="button">Insertar</button>
+    </div>
+    <div class="z-item">
+      <label class="field" for="z-c">Capacitor
+        <input type="text" id="z-c" value="0.1" inputmode="decimal" autocomplete="off">
+      </label>
+      <label class="field" for="z-cu">Unidad
+        <select id="z-cu">
+          <option value="1" selected>F</option>
+          <option value="1e-3">mF</option>
+          <option value="1e-6">µF</option>
+          <option value="1e-9">nF</option>
+        </select>
+      </label>
+      <div class="z-out" id="z-c-out" aria-live="polite"></div>
+      <button class="btn" id="z-c-ins" type="button">Insertar</button>
+    </div>
+  </section>
+
+  <section class="extra" aria-labelledby="h-quick" hidden>
+    <h2 id="h-quick">Operación suelta</h2>
+    <p class="note">Para una cuenta directa con números, por ejemplo Ix = V1 / −2.5j.</p>
+    <input type="text" id="quick" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" aria-label="Operación con números complejos">
+    <div class="results" id="quick-out" aria-live="polite"></div>
+  </section>
+
+  <section class="extra" aria-labelledby="h-how" hidden>
+    <h2 id="h-how">Cómo escribir</h2>
+    <dl class="howto">
+      <dt>2j &nbsp;j2 &nbsp;-2.5j</dt><dd>Parte imaginaria. Se usa j, igual que en clase.</dd>
+      <dt>20∠0 &nbsp;20&lt;0</dt><dd>Forma polar, con el ángulo en grados.</dd>
+      <dt>V1 &nbsp;V2 &nbsp;Ix</dt><dd>Incógnitas. Ponles el nombre que quieras, empezando con letra.</dd>
+      <dt>5V2 &nbsp;(-3+2j)V1</dt><dd>Multiplica sin escribir el signo.</dd>
+      <dt>(V1-V2)/4j</dt><dd>Divide entre 4j completo.</dd>
+      <dt>V0 = 20∠0</dt><dd>Un valor conocido se escribe como una ecuación más.</dd>
+      <dt>10 sen(2t)</dt><dd>Una fuente en seno se escribe con 90° menos: 10∠-90.</dd>
+    </dl>
+    <p class="note">Por casillas: en cada hueco va solo el número que multiplica a esa incógnita, y un hueco vacío cuenta como cero. Escrita: hace falta el mismo número de ecuaciones que de incógnitas.</p>
+  </section>
+</main>
+
+<script id="core">
+/* ---- complex arithmetic ---- */
+class CalcError extends Error {}
+const C = (re, im = 0) => ({ re, im });
+const cadd = (a, b) => C(a.re + b.re, a.im + b.im);
+const csub = (a, b) => C(a.re - b.re, a.im - b.im);
+const cmul = (a, b) => C(a.re * b.re - a.im * b.im, a.re * b.im + a.im * b.re);
+const cabs = (a) => Math.hypot(a.re, a.im);
+const cdiv = (a, b) => {
+  const d = b.re * b.re + b.im * b.im;
+  if (d === 0) throw new CalcError('Hay una división entre cero.');
+  return C((a.re * b.re + a.im * b.im) / d, (a.im * b.re - a.re * b.im) / d);
+};
+
+/* ---- tokenizer ---- */
+const NUM = /^(?:\d+\.?\d*|\.\d+)/;
+const POLAR = /^\s*[∠<]\s*([-+]?(?:\d+\.?\d*|\.\d+))/;
+const isWord = (ch) => !!ch && /[A-Za-z0-9_]/.test(ch);
+
+function tokenize(src) {
+  const s = src.replace(/[−–—]/g, '-').replace(/[×·]/g, '*').replace(/÷/g, '/').replace(/°/g, '');
+  const out = [];
+  let i = 0;
+  while (i < s.length) {
+    const ch = s[i];
+    if (/\s/.test(ch)) { i++; continue; }
+    if (/[0-9.]/.test(ch)) {
+      const m = NUM.exec(s.slice(i));
+      if (!m) throw new CalcError('Hay un punto decimal suelto.');
+      const val = parseFloat(m[0]);
+      i += m[0].length;
+      const p = POLAR.exec(s.slice(i));
+      if (p) {
+        const ang = parseFloat(p[1]) * Math.PI / 180;
+        out.push({ t: 'num', v: C(val * Math.cos(ang), val * Math.sin(ang)) });
+        i += p[0].length;
+      } else if (s[i] === 'j' || (s[i] === 'i' && !isWord(s[i + 1]))) {
+        out.push({ t: 'num', v: C(0, val) });
+        i++;
+      } else {
+        out.push({ t: 'num', v: C(val, 0) });
+      }
+      continue;
+    }
+    if (ch === 'j') {
+      const m = NUM.exec(s.slice(i + 1));
+      if (m) { out.push({ t: 'num', v: C(0, parseFloat(m[0])) }); i += 1 + m[0].length; }
+      else { out.push({ t: 'num', v: C(0, 1) }); i++; }
+      continue;
+    }
+    if (ch === 'i' && !isWord(s[i + 1])) { out.push({ t: 'num', v: C(0, 1) }); i++; continue; }
+    if (/[A-Za-z]/.test(ch)) {
+      const m = /^[A-Za-z][A-Za-z0-9_]*/.exec(s.slice(i));
+      out.push({ t: 'id', name: m[0] });
+      i += m[0].length;
+      continue;
+    }
+    if ('+-*/()'.includes(ch)) { out.push({ t: ch }); i++; continue; }
+    if (ch === '<' || ch === '∠') throw new CalcError('La forma polar va como magnitud∠ángulo, por ejemplo 20∠0.');
+    if (ch === '=') throw new CalcError('Cada ecuación lleva un solo signo =.');
+    throw new CalcError('No reconozco el símbolo "' + ch + '".');
+  }
+  return out;
+}
+
+/* ---- linear forms: constant + sum of coefficient * unknown ---- */
+const lconst = (c) => ({ c, v: new Map() });
+const lvar = (name) => ({ c: C(0, 0), v: new Map([[name, C(1, 0)]]) });
+const lscale = (a, k) => {
+  const v = new Map();
+  for (const [n, x] of a.v) v.set(n, cmul(x, k));
+  return { c: cmul(a.c, k), v };
+};
+const ladd = (a, b, sign) => {
+  const v = new Map(a.v);
+  for (const [n, x] of b.v) {
+    const cur = v.get(n) || C(0, 0);
+    v.set(n, sign > 0 ? cadd(cur, x) : csub(cur, x));
+  }
+  return { c: sign > 0 ? cadd(a.c, b.c) : csub(a.c, b.c), v };
+};
+const lmul = (a, b) => {
+  if (a.v.size === 0) return lscale(b, a.c);
+  if (b.v.size === 0) return lscale(a, b.c);
+  throw new CalcError('Hay dos incógnitas multiplicándose. El sistema tiene que ser lineal.');
+};
+const ldiv = (a, b) => {
+  if (b.v.size > 0) throw new CalcError('No se puede dividir entre una incógnita.');
+  return lscale(a, cdiv(C(1, 0), b.c));
+};
+
+/* ---- parser ---- */
+function parseLinear(src) {
+  const t = tokenize(src);
+  let p = 0;
+  const peek = () => t[p];
+  function expr() {
+    let a = term();
+    while (peek() && (peek().t === '+' || peek().t === '-')) {
+      const op = t[p++].t;
+      a = ladd(a, term(), op === '+' ? 1 : -1);
+    }
+    return a;
+  }
+  function term() {
+    let a = unary();
+    for (;;) {
+      const k = peek();
+      if (!k) break;
+      if (k.t === '*' || k.t === '/') { p++; const b = unary(); a = k.t === '*' ? lmul(a, b) : ldiv(a, b); }
+      else if (k.t === 'num' || k.t === 'id' || k.t === '(') a = lmul(a, primary());
+      else break;
+    }
+    return a;
+  }
+  function unary() {
+    const k = peek();
+    if (k && (k.t === '-' || k.t === '+')) { p++; const a = unary(); return k.t === '-' ? lscale(a, C(-1, 0)) : a; }
+    return primary();
+  }
+  function primary() {
+    const k = t[p++];
+    if (!k) throw new CalcError('La expresión está incompleta.');
+    if (k.t === 'num') return lconst(k.v);
+    if (k.t === 'id') return lvar(k.name);
+    if (k.t === '(') {
+      const a = expr();
+      const c = t[p++];
+      if (!c || c.t !== ')') throw new CalcError('Falta cerrar un paréntesis.');
+      return a;
+    }
+    if (k.t === ')') throw new CalcError('Sobra un paréntesis o falta algo dentro de él.');
+    throw new CalcError('Falta un número o una incógnita junto al signo ' + k.t + '.');
+  }
+  const r = expr();
+  if (p < t.length) throw new CalcError(t[p].t === ')' ? 'Sobra un paréntesis de cierre.' : 'La expresión no se entiende.');
+  return r;
+}
+
+function parseEquation(text) {
+  const parts = text.split('=');
+  if (parts.length === 1) throw new CalcError('Falta el signo = en la ecuación.');
+  if (parts.length > 2) throw new CalcError('Cada ecuación lleva un solo signo =.');
+  if (!parts[0].trim() || !parts[1].trim()) throw new CalcError('Falta un lado de la ecuación.');
+  return ladd(parseLinear(parts[0]), parseLinear(parts[1]), -1);
+}
+
+function unknownsOf(forms) {
+  const names = [];
+  for (const f of forms) for (const n of f.v.keys()) if (!names.includes(n)) names.push(n);
+  return names;
+}
+
+const SINGULAR = 'Estas ecuaciones no tienen una solución única. Revisa que ninguna repita o contradiga a otra.';
+
+function gauss(A, b) {
+  const n = A.length;
+  const M = A.map((r, i) => r.map((x) => C(x.re, x.im)).concat([C(b[i].re, b[i].im)]));
+  let scale = 0;
+  for (const r of M) for (let j = 0; j < n; j++) scale = Math.max(scale, cabs(r[j]));
+  if (scale === 0) throw new CalcError(SINGULAR);
+  for (let k = 0; k < n; k++) {
+    let piv = k, best = cabs(M[k][k]);
+    for (let i = k + 1; i < n; i++) { const a = cabs(M[i][k]); if (a > best) { best = a; piv = i; } }
+    if (best < 1e-12 * scale) throw new CalcError(SINGULAR);
+    [M[k], M[piv]] = [M[piv], M[k]];
+    for (let i = k + 1; i < n; i++) {
+      const f = cdiv(M[i][k], M[k][k]);
+      if (f.re === 0 && f.im === 0) continue;
+      for (let j = k; j <= n; j++) M[i][j] = csub(M[i][j], cmul(f, M[k][j]));
+    }
+  }
+  const x = new Array(n);
+  for (let i = n - 1; i >= 0; i--) {
+    let s = M[i][n];
+    for (let j = i + 1; j < n; j++) s = csub(s, cmul(M[i][j], x[j]));
+    x[i] = cdiv(s, M[i][i]);
+  }
+  return x;
+}
+
+function solveForms(forms) {
+  const names = unknownsOf(forms);
+  const n = forms.length, m = names.length;
+  if (m === 0) throw new CalcError('No hay incógnitas. Usa nombres como V1, V2 o Ix.');
+  if (n < m) {
+    const falta = m - n;
+    throw new CalcError('Hay ' + m + ' incógnitas: ' + names.join(', ') + '. Con ' + n + (n === 1 ? ' ecuación' : ' ecuaciones') + ' no alcanza, ' + (falta === 1 ? 'falta 1 más.' : 'faltan ' + falta + ' más.'));
+  }
+  if (n > m) throw new CalcError('Hay ' + n + ' ecuaciones para ' + m + (m === 1 ? ' incógnita' : ' incógnitas') + '. Quita las que sobran.');
+  const zero = C(0, 0);
+  const A = forms.map((f) => names.map((nm) => f.v.get(nm) || zero));
+  const b = forms.map((f) => C(-f.c.re, -f.c.im));
+  return { names, values: gauss(A, b) };
+}
+
+/* ---- formatting ---- */
+function fmtNum(x, d) {
+  const r = Number(x.toFixed(d));
+  return (r === 0 ? 0 : r).toString();
+}
+function fmtComplex(z, d) {
+  let re = z.re, im = z.im;
+  const mag = Math.hypot(re, im);
+  if (Math.abs(re) < 1e-10 * mag) re = 0;
+  if (Math.abs(im) < 1e-10 * mag) im = 0;
+  const sre = fmtNum(re, d), sim = fmtNum(Math.abs(im), d);
+  let rect;
+  if (sim === '0') rect = sre;
+  else if (sre === '0') rect = (im < 0 ? '-' : '') + sim + 'j';
+  else rect = sre + (im < 0 ? ' - ' : ' + ') + sim + 'j';
+  const smag = fmtNum(mag, d);
+  const ang = smag === '0' ? 0 : Math.atan2(im, re) * 180 / Math.PI;
+  return { rect, polar: smag + ' ∠ ' + fmtNum(ang, d) + '°' };
+}
+
+/* ---- time domain: phasor referred to cosine; sen(x) = cos(x - 90°) ---- */
+function normAng(a) {
+  a = a % 360;
+  if (a > 180) a -= 360;
+  if (a <= -180) a += 360;
+  return a;
+}
+function fmtTime(z, d, w) {
+  let re = z.re, im = z.im;
+  const mag = Math.hypot(re, im);
+  if (Math.abs(re) < 1e-10 * mag) re = 0;
+  if (Math.abs(im) < 1e-10 * mag) im = 0;
+  const smag = fmtNum(mag, d);
+  const ang = smag === '0' ? 0 : Math.atan2(im, re) * 180 / Math.PI;
+  const wt = w == null ? 'ωt' : (w === 1 ? 't' : fmtNum(w, 6) + 't');
+  const arg = (a) => {
+    const sa = fmtNum(Math.abs(a), d);
+    return sa === '0' ? wt : wt + (a < 0 ? ' - ' : ' + ') + sa + '°';
+  };
+  return { cos: smag + ' cos(' + arg(ang) + ')', sen: smag + ' sen(' + arg(normAng(ang + 90)) + ')' };
+}
+function sourcePhasor(amp, fn, phaseDeg) {
+  let a = phaseDeg + (fn === 'sen' ? -90 : 0);
+  if (amp < 0) { amp = -amp; a += 180; }
+  a = normAng(a);
+  const r = a * Math.PI / 180;
+  return { mag: amp, ang: a, z: C(amp * Math.cos(r), amp * Math.sin(r)) };
+}
+if (typeof module !== 'undefined') module.exports = { parseEquation, parseLinear, solveForms, fmtComplex, fmtTime, sourcePhasor, CalcError };
+</script>
+
+<script>
+(function () {
+  const KEY = 'calc-complejos-v1';
+  const EXAMPLE = ['(-3+2j)V1 - 5V2 = 40j', '11V1 + 15V2 = 0'];
+  const EXAMPLE_QUICK = '(18+6j)/(-2.5j)';
+  const SYMBOLS = ['j', '∠', '(', ')', '/', '=', '+', '-'];
+  const BASE_VARS = ['V1', 'V2', 'V3', 'V4', 'I1', 'I2', 'I3', 'I4'];
+  const MIN_ROWS = 4;
+  const pad = (list) => { while (list.length < MIN_ROWS) list.push(''); return list; };
+
+  const $ = (id) => document.getElementById(id);
+  const eqsEl = $('eqs'), keysEl = $('keys'), resEl = $('results'), statusEl = $('status');
+  const quickEl = $('quick'), quickOut = $('quick-out'), decEl = $('dec'), omegaEl = $('omega');
+  const srcAmp = $('src-amp'), srcFn = $('src-fn'), srcPh = $('src-ph'), srcOut = $('src-out');
+  let srcText = '';
+  const omega2 = $('omega2'), zL = $('z-l'), zLu = $('z-lu'), zC = $('z-c'), zCu = $('z-cu');
+  const zText = { l: '', c: '' };
+
+  let rows = EXAMPLE.slice();
+  let lastInput = null;
+  let lastCopy = '';
+  let shownVars = '';
+  const blocksEl = $('blocks'), bnEl = $('bn'), bletterEl = $('bletter');
+  const EX_A = [['-3+2j', '-5'], ['11', '15']], EX_B = ['40j', '0'];
+  let mode = 'blocks';
+  let showExtras = false;
+  let cellA = [0, 1, 2, 3].map(() => ['', '', '', '']);
+  let cellB = ['', '', '', ''];
+  function loadExampleCells() {
+    cellA = [0, 1, 2, 3].map(() => ['', '', '', '']);
+    cellB = ['', '', '', ''];
+    EX_A.forEach((r, i) => r.forEach((v, j) => { cellA[i][j] = v; }));
+    EX_B.forEach((v, i) => { cellB[i] = v; });
+    bnEl.value = '2';
+    bletterEl.value = 'V';
+  }
+  loadExampleCells();
+
+  try {
+    const saved = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (saved && Array.isArray(saved.rows) && saved.rows.length && saved.rows.every((r) => typeof r === 'string')) {
+      rows = saved.rows.slice(0, 12);
+      if (typeof saved.quick === 'string') quickEl.value = saved.quick;
+      if (['2', '3', '4', '6'].includes(String(saved.dec))) decEl.value = String(saved.dec);
+      omegaEl.value = typeof saved.omega === 'string' ? saved.omega : '';
+      if (typeof saved.srcAmp === 'string') srcAmp.value = saved.srcAmp;
+      if (typeof saved.srcPh === 'string') srcPh.value = saved.srcPh;
+      if (saved.srcFn === 'cos' || saved.srcFn === 'sen') srcFn.value = saved.srcFn;
+      if (typeof saved.zL === 'string') zL.value = saved.zL;
+      if (typeof saved.zC === 'string') zC.value = saved.zC;
+      if (['1', '1e-3', '1e-6'].includes(saved.zLu)) zLu.value = saved.zLu;
+      if (['1', '1e-3', '1e-6', '1e-9'].includes(saved.zCu)) zCu.value = saved.zCu;
+      if (saved.mode === 'text' || saved.mode === 'blocks') mode = saved.mode;
+      showExtras = saved.extras === true;
+      const okA = Array.isArray(saved.cellA) && saved.cellA.length === 4 && saved.cellA.every((r) => Array.isArray(r) && r.length === 4 && r.every((v) => typeof v === 'string'));
+      const okB = Array.isArray(saved.cellB) && saved.cellB.length === 4 && saved.cellB.every((v) => typeof v === 'string');
+      if (okA && okB) {
+        cellA = saved.cellA;
+        cellB = saved.cellB;
+        if (['2', '3', '4'].includes(String(saved.bn))) bnEl.value = String(saved.bn);
+        if (saved.letter === 'V' || saved.letter === 'I') bletterEl.value = saved.letter;
+      }
+    } else {
+      quickEl.value = EXAMPLE_QUICK;
+    }
+  } catch (e) {
+    quickEl.value = EXAMPLE_QUICK;
+  }
+
+  pad(rows);
+
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify({ rows, quick: quickEl.value, dec: decEl.value, omega: omegaEl.value, srcAmp: srcAmp.value, srcPh: srcPh.value, srcFn: srcFn.value, zL: zL.value, zLu: zLu.value, zC: zC.value, zCu: zCu.value, mode, cellA, cellB, bn: bnEl.value, letter: bletterEl.value, extras: showExtras })); } catch (e) {}
+  }
+
+  function el(tag, cls, text) {
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+  const pretty = (s) => s.replace(/-/g, '−');
+  const message = (e) => (e instanceof CalcError ? e.message : 'No pude leer esto. Revisa cómo está escrito.');
+
+  function renderRows(focusIdx) {
+    eqsEl.textContent = '';
+    rows.forEach((txt, i) => {
+      const row = el('div', 'eq');
+      row.appendChild(el('span', 'eq-num', String(i + 1)));
+      const inp = el('input', 'eq-input');
+      inp.type = 'text';
+      inp.id = 'eq-' + i;
+      inp.value = txt;
+      inp.dataset.idx = i;
+      inp.setAttribute('aria-label', 'Ecuación ' + (i + 1));
+      inp.setAttribute('autocapitalize', 'off');
+      inp.setAttribute('autocorrect', 'off');
+      inp.setAttribute('autocomplete', 'off');
+      inp.setAttribute('spellcheck', 'false');
+      inp.setAttribute('enterkeyhint', 'next');
+      row.appendChild(inp);
+      const rm = el('button', 'icon-btn', '×');
+      rm.type = 'button';
+      rm.dataset.rm = i;
+      rm.setAttribute('aria-label', 'Quitar ecuación ' + (i + 1));
+      row.appendChild(rm);
+      const err = el('div', 'eq-err');
+      err.id = 'eq-err-' + i;
+      row.appendChild(err);
+      eqsEl.appendChild(row);
+    });
+    if (focusIdx != null) {
+      const f = $('eq-' + focusIdx);
+      if (f) { f.focus(); lastInput = f; }
+    }
+  }
+
+  function renderKeys(vars) {
+    const blocks = vars === null;
+    const list = blocks ? [] : BASE_VARS.concat(vars.filter((v) => !BASE_VARS.includes(v)).slice(0, 6));
+    const sig = (blocks ? 'B' : 'T') + list.join('|');
+    if (sig === shownVars && keysEl.childElementCount) return;
+    shownVars = sig;
+    keysEl.textContent = '';
+    SYMBOLS.forEach((s) => {
+      if (blocks && s === '=') return;
+      const b = el('button', 'key', s === '-' ? '−' : s);
+      b.type = 'button';
+      b.dataset.ins = s;
+      keysEl.appendChild(b);
+    });
+    list.forEach((v) => {
+      const b = el('button', 'key var', v);
+      b.type = 'button';
+      b.dataset.ins = v;
+      keysEl.appendChild(b);
+    });
+  }
+
+  function num(text) {
+    const t = text.trim().replace(/[−–—]/g, '-').replace(',', '.');
+    if (!/^[-+]?(\d+\.?\d*|\.\d+)$/.test(t)) return null;
+    return parseFloat(t);
+  }
+  function omega() {
+    const w = num(omegaEl.value);
+    return w == null || w === 0 ? null : w;
+  }
+  function resultRow(name, lines) {
+    const r = el('div', 'res');
+    r.appendChild(el('div', 'res-name', name));
+    const box = el('div', 'res-lines');
+    lines.forEach((ln) => {
+      const l = el('div', 'res-line');
+      l.appendChild(el('span', 'lab', ln[0]));
+      l.appendChild(el('span', 'val ' + ln[2], pretty(ln[1])));
+      box.appendChild(l);
+    });
+    r.appendChild(box);
+    return r;
+  }
+  function fullLines(z, d) {
+    const f = fmtComplex(z, d), t = fmtTime(z, d, omega());
+    const lines = [['Rectangular', f.rect, 'rect'], ['Polar', f.polar, 'polar']];
+    if (showExtras) lines.push(['Coseno', t.cos, 'time'], ['Seno', t.sen, 'time']);
+    return { f, t, lines };
+  }
+  function computeSrc() {
+    const d = parseInt(decEl.value, 10);
+    srcOut.textContent = '';
+    srcText = '';
+    const a = num(srcAmp.value), ph = srcPh.value.trim() === '' ? 0 : num(srcPh.value);
+    srcAmp.classList.toggle('bad', a == null);
+    srcPh.classList.toggle('bad', ph == null);
+    if (a == null || ph == null) {
+      srcOut.appendChild(el('p', 'note err', 'Escribe la amplitud y la fase como números, por ejemplo 10 y -30.'));
+      return;
+    }
+    const sp = sourcePhasor(a, srcFn.value, ph);
+    const f = fmtComplex(sp.z, d);
+    const polar = fmtNum(sp.mag, d) + ' ∠ ' + fmtNum(sp.ang, d) + '°';
+    srcText = fmtNum(sp.mag, 6) + '∠' + fmtNum(sp.ang, 6);
+    srcOut.appendChild(resultRow('=', [['Fasor', polar, 'rect'], ['Rectangular', f.rect, 'polar'], ['Se escribe', srcText, 'time']]));
+  }
+
+  function computeZ() {
+    const d = parseInt(decEl.value, 10), w = omega();
+    [['l', zL, zLu], ['c', zC, zCu]].forEach((it) => {
+      const k = it[0], inp = it[1], unit = it[2];
+      const out = $('z-' + k + '-out');
+      out.textContent = '';
+      zText[k] = '';
+      const v = num(inp.value);
+      const badVal = v == null || v <= 0;
+      inp.classList.toggle('bad', badVal);
+      const msg = w == null ? 'Falta escribir ω.' : (badVal ? 'Escribe un valor mayor que cero.' : '');
+      if (msg) { out.appendChild(el('span', 'note err', msg)); return; }
+      const x = v * parseFloat(unit.value);
+      const im = k === 'l' ? w * x : -1 / (w * x);
+      out.appendChild(el('span', 'lab', 'Impedancia'));
+      out.appendChild(el('span', 'val rect', pretty(fmtComplex(C(0, im), d).rect) + ' Ω'));
+      zText[k] = fmtNum(im, 9) + 'j';
+    });
+  }
+
+  function blockNames() {
+    const n = parseInt(bnEl.value, 10), out = [];
+    for (let j = 0; j < n; j++) out.push(bletterEl.value + (j + 1));
+    return out;
+  }
+
+  function renderBlocks() {
+    const names = blockNames(), n = names.length;
+    blocksEl.textContent = '';
+    for (let i = 0; i < n; i++) {
+      const blk = el('div', 'blk');
+      const head = el('div', 'blk-head');
+      head.appendChild(el('span', 'eq-num', String(i + 1)));
+      head.appendChild(el('span', '', 'Ecuación ' + (i + 1)));
+      blk.appendChild(head);
+      const slots = el('div', 'slots');
+      for (let j = 0; j <= n; j++) {
+        const rhs = j === n;
+        const slot = el('label', 'slot' + (rhs ? ' rhs' : ''));
+        slot.appendChild(el('span', 'pre', rhs ? '=' : (j === 0 ? '' : '+')));
+        const inp = el('input');
+        inp.type = 'text';
+        inp.id = 'bk-' + i + '-' + j;
+        inp.dataset.i = i;
+        inp.dataset.j = j;
+        inp.value = rhs ? cellB[i] : cellA[i][j];
+        inp.placeholder = '0';
+        inp.setAttribute('aria-label', rhs ? 'Ecuación ' + (i + 1) + ', resultado' : 'Ecuación ' + (i + 1) + ', número que multiplica a ' + names[j]);
+        inp.setAttribute('autocapitalize', 'off');
+        inp.setAttribute('autocorrect', 'off');
+        inp.setAttribute('autocomplete', 'off');
+        inp.setAttribute('spellcheck', 'false');
+        inp.setAttribute('enterkeyhint', 'next');
+        slot.appendChild(inp);
+        slot.appendChild(el('span', 'suf', rhs ? '' : names[j]));
+        slots.appendChild(slot);
+      }
+      blk.appendChild(slots);
+      const err = el('div', 'eq-err');
+      err.id = 'bk-err-' + i;
+      blk.appendChild(err);
+      blocksEl.appendChild(blk);
+    }
+  }
+
+  function gatherBlocks() {
+    const names = blockNames(), n = names.length;
+    const forms = [];
+    let bad = 0, any = false;
+    for (let i = 0; i < n; i++) {
+      const v = new Map();
+      let c = C(0, 0), rowErr = '';
+      for (let j = 0; j <= n; j++) {
+        const rhs = j === n;
+        const inp = $('bk-' + i + '-' + j);
+        const txt = rhs ? cellB[i] : cellA[i][j];
+        let val = C(0, 0);
+        if (inp) inp.classList.remove('bad');
+        if (txt.trim()) {
+          any = true;
+          try {
+            if (txt.includes('=')) throw new CalcError('en la casilla no va el signo =.');
+            const f = parseLinear(txt);
+            if (f.v.size) throw new CalcError('aquí va solo el número, la incógnita ya está puesta.');
+            val = f.c;
+          } catch (e) {
+            bad++;
+            if (inp) inp.classList.add('bad');
+            if (!rowErr) rowErr = (rhs ? 'Casilla del resultado: ' : 'Casilla de ' + names[j] + ': ') + message(e);
+          }
+        }
+        if (rhs) c = C(-val.re, -val.im);
+        else v.set(names[j], val);
+      }
+      const errEl = $('bk-err-' + i);
+      if (errEl) errEl.textContent = rowErr;
+      forms.push({ c, v });
+    }
+    return { forms: any ? forms : [], bad };
+  }
+
+  function applyExtras() {
+    document.querySelectorAll('.extra').forEach((e) => { e.hidden = !showExtras; });
+    const b = $('more');
+    b.textContent = showExtras ? 'Ocultar herramientas' : 'Más herramientas';
+    b.setAttribute('aria-expanded', showExtras ? 'true' : 'false');
+  }
+
+  function applyMode() {
+    const b = mode === 'blocks';
+    $('m-blocks').setAttribute('aria-pressed', b ? 'true' : 'false');
+    $('m-text').setAttribute('aria-pressed', b ? 'false' : 'true');
+    blocksEl.hidden = !b;
+    $('blk-opts').hidden = !b;
+    eqsEl.hidden = b;
+    $('add').hidden = b;
+  }
+
+  function setStatus(kind, text) {
+    statusEl.className = 'pill' + (kind ? ' ' + kind : '');
+    statusEl.textContent = text;
+  }
+
+  function compute() {
+    const d = parseInt(decEl.value, 10);
+    let forms = [];
+    let bad = 0;
+    if (mode === 'blocks') {
+      const g = gatherBlocks();
+      forms = g.forms;
+      bad = g.bad;
+    } else rows.forEach((txt, i) => {
+      const inp = $('eq-' + i), err = $('eq-err-' + i);
+      if (!inp) return;
+      if (!txt.trim()) { inp.classList.remove('bad'); err.textContent = ''; return; }
+      try {
+        forms.push(parseEquation(txt));
+        inp.classList.remove('bad');
+        err.textContent = '';
+      } catch (e) {
+        bad++;
+        inp.classList.add('bad');
+        err.textContent = message(e);
+      }
+    });
+    renderKeys(mode === 'blocks' ? null : unknownsOf(forms));
+    resEl.textContent = '';
+    lastCopy = '';
+    if (bad) {
+      setStatus('err', 'Revisa lo marcado en rojo');
+      resEl.appendChild(el('p', 'note', 'Corrige lo marcado en rojo y los resultados aparecen aquí.'));
+      return;
+    }
+    if (!forms.length) {
+      setStatus('', 'Sin resolver');
+      resEl.appendChild(el('p', 'note', 'Escribe tus ecuaciones arriba y los resultados aparecen aquí.'));
+      return;
+    }
+    try {
+      const sol = solveForms(forms);
+      const lines = [];
+      sol.names.forEach((nm, i) => {
+        const r = fullLines(sol.values[i], d);
+        resEl.appendChild(resultRow(nm, r.lines));
+        lines.push(nm + ' = ' + r.f.rect + ' = ' + r.f.polar + (showExtras ? ' = ' + r.t.cos + ' = ' + r.t.sen : ''));
+      });
+      lastCopy = lines.join('\n');
+      setStatus('ok', 'Resuelto, ' + sol.names.length + (sol.names.length === 1 ? ' incógnita' : ' incógnitas'));
+    } catch (e) {
+      setStatus('err', 'Sin solución todavía');
+      resEl.appendChild(el('p', 'note err', message(e)));
+    }
+  }
+
+  function computeQuick() {
+    const d = parseInt(decEl.value, 10);
+    const txt = quickEl.value;
+    quickOut.textContent = '';
+    quickEl.classList.remove('bad');
+    if (!txt.trim()) return;
+    try {
+      if (txt.includes('=')) throw new CalcError('Aquí va solo la operación, sin signo =.');
+      const f = parseLinear(txt);
+      if (f.v.size) throw new CalcError('Aquí van solo números. Las incógnitas van en las ecuaciones de arriba.');
+      quickOut.appendChild(resultRow('=', fullLines(f.c, d).lines));
+    } catch (e) {
+      quickEl.classList.add('bad');
+      quickOut.appendChild(el('p', 'note err', message(e)));
+    }
+  }
+
+  function insertText(txt) {
+    const visible = lastInput && document.body.contains(lastInput) && lastInput.offsetParent !== null;
+    const inp = visible ? lastInput : document.querySelector(mode === 'blocks' ? '#blocks input' : '.eq-input');
+    if (!inp) return;
+    const s = inp.selectionStart == null ? inp.value.length : inp.selectionStart;
+    const e = inp.selectionEnd == null ? s : inp.selectionEnd;
+    inp.setRangeText(txt, s, e, 'end');
+    inp.focus();
+    inp.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
+  eqsEl.addEventListener('input', (ev) => {
+    const i = ev.target.dataset.idx;
+    if (i == null) return;
+    rows[+i] = ev.target.value;
+    compute();
+    save();
+  });
+  eqsEl.addEventListener('focusin', (ev) => { if (ev.target.matches('input')) lastInput = ev.target; });
+  eqsEl.addEventListener('keydown', (ev) => {
+    if (ev.key !== 'Enter' || ev.target.dataset.idx == null) return;
+    ev.preventDefault();
+    const i = +ev.target.dataset.idx;
+    if (i === rows.length - 1) {
+      if (rows.length >= 12) return;
+      rows.push('');
+      renderRows(i + 1);
+      compute();
+      save();
+    } else {
+      const nx = $('eq-' + (i + 1));
+      if (nx) nx.focus();
+    }
+  });
+  eqsEl.addEventListener('click', (ev) => {
+    const b = ev.target.closest('[data-rm]');
+    if (!b) return;
+    const i = +b.dataset.rm;
+    if (rows.length > 1) rows.splice(i, 1); else rows[0] = '';
+    renderRows();
+    compute();
+    save();
+  });
+
+  keysEl.addEventListener('pointerdown', (ev) => { if (ev.target.closest('.key')) ev.preventDefault(); });
+  keysEl.addEventListener('click', (ev) => {
+    const b = ev.target.closest('.key');
+    if (b) insertText(b.dataset.ins);
+  });
+
+  quickEl.addEventListener('focus', () => { lastInput = quickEl; });
+  quickEl.addEventListener('input', () => { computeQuick(); save(); });
+  decEl.addEventListener('change', () => { compute(); computeQuick(); computeSrc(); computeZ(); save(); });
+  omegaEl.addEventListener('input', () => { omega2.value = omegaEl.value; compute(); computeQuick(); computeZ(); save(); });
+  omega2.addEventListener('input', () => { omegaEl.value = omega2.value; compute(); computeQuick(); computeZ(); save(); });
+  [zL, zC].forEach((e) => e.addEventListener('input', () => { computeZ(); save(); }));
+  [zLu, zCu].forEach((e) => e.addEventListener('change', () => { computeZ(); save(); }));
+  ['l', 'c'].forEach((k) => {
+    const b = $('z-' + k + '-ins');
+    b.addEventListener('pointerdown', (ev) => ev.preventDefault());
+    b.addEventListener('click', () => { if (zText[k]) insertText(zText[k]); });
+  });
+  [srcAmp, srcPh].forEach((e) => e.addEventListener('input', () => { computeSrc(); save(); }));
+  srcFn.addEventListener('change', () => { computeSrc(); save(); });
+  $('src-ins').addEventListener('pointerdown', (ev) => ev.preventDefault());
+  $('src-ins').addEventListener('click', () => {
+    if (!srcText) return;
+    if (lastInput === srcAmp || lastInput === srcPh) lastInput = null;
+    insertText(srcText);
+  });
+
+  $('add').addEventListener('click', () => {
+    if (rows.length >= 12) return;
+    rows.push('');
+    renderRows(rows.length - 1);
+    compute();
+    save();
+  });
+  $('clear').addEventListener('click', () => {
+    if (mode === 'blocks') {
+      cellA = [0, 1, 2, 3].map(() => ['', '', '', '']);
+      cellB = ['', '', '', ''];
+      renderBlocks();
+      const f = $('bk-0-0');
+      if (f) { f.focus(); lastInput = f; }
+    } else {
+      rows = pad([]);
+      renderRows(0);
+    }
+    compute();
+    save();
+  });
+  $('more').addEventListener('click', () => {
+    showExtras = !showExtras;
+    applyExtras();
+    compute();
+    computeQuick();
+    save();
+  });
+  ['m-blocks', 'm-text'].forEach((id) => {
+    $(id).addEventListener('click', () => {
+      mode = id === 'm-blocks' ? 'blocks' : 'text';
+      lastInput = null;
+      applyMode();
+      compute();
+      save();
+    });
+  });
+  [bnEl, bletterEl].forEach((e) => e.addEventListener('change', () => { renderBlocks(); compute(); save(); }));
+  blocksEl.addEventListener('input', (ev) => {
+    const d = ev.target.dataset;
+    if (d.i == null) return;
+    const i = +d.i, j = +d.j, n = parseInt(bnEl.value, 10);
+    if (j === n) cellB[i] = ev.target.value; else cellA[i][j] = ev.target.value;
+    compute();
+    save();
+  });
+  blocksEl.addEventListener('focusin', (ev) => { if (ev.target.matches('input')) lastInput = ev.target; });
+  blocksEl.addEventListener('keydown', (ev) => {
+    if (ev.key !== 'Enter' || !ev.target.matches('input')) return;
+    ev.preventDefault();
+    const all = Array.from(blocksEl.querySelectorAll('input'));
+    const nx = all[all.indexOf(ev.target) + 1];
+    if (nx) nx.focus(); else ev.target.blur();
+  });
+  $('example').addEventListener('click', () => {
+    rows = pad(EXAMPLE.slice());
+    loadExampleCells();
+    renderBlocks();
+    quickEl.value = EXAMPLE_QUICK;
+    omegaEl.value = '4';
+    omega2.value = '4';
+    renderRows();
+    compute();
+    computeQuick();
+    computeZ();
+    save();
+  });
+  $('copy').addEventListener('click', () => {
+    const btn = $('copy');
+    if (!lastCopy) { btn.textContent = 'Aún no hay resultados'; setTimeout(() => { btn.textContent = 'Copiar resultados'; }, 1600); return; }
+    const done = (ok) => { btn.textContent = ok ? 'Copiado' : 'No se pudo copiar'; setTimeout(() => { btn.textContent = 'Copiar resultados'; }, 1600); };
+    try { navigator.clipboard.writeText(lastCopy).then(() => done(true), () => done(false)); } catch (e) { done(false); }
+  });
+
+  omega2.value = omegaEl.value;
+  renderBlocks();
+  applyMode();
+  applyExtras();
+  renderRows();
+  compute();
+  computeQuick();
+  computeSrc();
+  computeZ();
+})();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
+}
+</script>
+</body>
+</html>
