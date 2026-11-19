@@ -108,6 +108,30 @@ input[type="text"].bad{border-color:var(--warn)}
 .eq-err{grid-column:2 / 4;color:var(--warn);font-size:.85rem;margin-top:-2px}
 .eq-err:empty{display:none}
 [hidden]{display:none !important}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px}
+.tab{height:42px;border:0;border-radius:8px;background:transparent;color:var(--muted);font-size:.95rem}
+.tab[aria-selected="true"]{background:var(--accent);color:var(--accent-ink);font-weight:500}
+.panel{display:flex;flex-direction:column;gap:20px}
+.c-hist{display:flex;flex-direction:column;gap:2px}
+.c-hist:empty{display:none}
+.c-hist button{appearance:none;background:transparent;border:0;border-radius:6px;padding:4px 2px;text-align:right;font-family:var(--font-mono);font-size:.85rem;color:var(--muted);overflow-wrap:anywhere}
+.c-disp{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:4px;min-height:118px;justify-content:flex-end}
+.c-mode{font-size:.72rem;color:var(--muted);letter-spacing:.04em}
+.c-expr{font-family:var(--font-mono);font-size:1.15rem;text-align:right;overflow-wrap:anywhere;min-height:1.6em;color:var(--muted)}
+.c-expr.live{color:var(--ink)}
+.c-res{font-family:var(--font-mono);text-align:right;font-size:1.9rem;font-weight:500;overflow-wrap:anywhere;font-variant-numeric:tabular-nums;line-height:1.2;min-height:1.2em}
+.c-res.pre{font-size:1.15rem;color:var(--muted);font-weight:400}
+.c-res.err{font-family:var(--font-body);font-size:.95rem;color:var(--warn);font-weight:400}
+.c-sub{font-family:var(--font-mono);text-align:right;font-size:1.05rem;color:var(--muted);overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.c-sub:empty{display:none}
+.c-pad{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.ck{height:52px;padding:0;border-radius:10px;border:1px solid var(--line);background:var(--surface);font-family:var(--font-mono);font-size:1.15rem;color:var(--ink);touch-action:manipulation}
+.ck.fn{background:var(--tint);border-color:transparent;font-size:.95rem}
+.ck.op{background:var(--tint);border-color:transparent}
+.ck.equal{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.ck.wide{grid-column:span 2}
+.ck:active{border-color:var(--accent)}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;padding:3px;gap:3px;align-self:flex-start}
 .seg-btn{height:36px;padding:0 14px;border:0;border-radius:7px;background:transparent;color:var(--muted)}
 .seg-btn[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);font-weight:500}
@@ -202,10 +226,23 @@ select{
 </head>
 <body>
 <main>
-  <header>
-    <h1>Calculadora de números complejos</h1>
-    <p>Escribe las ecuaciones de nodos o mallas como quedan en el pizarrón y lee cada incógnita en forma rectangular y polar.</p>
-  </header>
+  <h1 class="vh">Calculadora</h1>
+  <div class="tabs" role="tablist" aria-label="Modos de la calculadora">
+    <button class="tab" role="tab" id="t-calc" data-tab="calc" type="button" aria-selected="true">Calculadora</button>
+    <button class="tab" role="tab" id="t-cx" data-tab="cx" type="button" aria-selected="false">Complejos</button>
+    <button class="tab" role="tab" id="t-sys" data-tab="sys" type="button" aria-selected="false">Sistemas</button>
+  </div>
+
+  <div class="panel" id="p-calc" role="tabpanel" aria-labelledby="t-calc">
+    <section id="calc-root" aria-label="Calculadora"></section>
+  </div>
+
+  <div class="panel" id="p-cx" role="tabpanel" aria-labelledby="t-cx" hidden>
+    <section id="cx-root" aria-label="Calculadora de números complejos"></section>
+  </div>
+
+  <div class="panel" id="p-sys" role="tabpanel" aria-labelledby="t-sys" hidden>
+  <p class="note">Escribe las ecuaciones de nodos o mallas como quedan en el pizarrón y lee cada incógnita en forma rectangular y polar.</p>
 
   <section aria-labelledby="h-eq">
     <div class="sec-head">
@@ -330,7 +367,7 @@ select{
     </div>
   </section>
 
-  <section class="extra" aria-labelledby="h-quick" hidden>
+  <section aria-labelledby="h-quick" hidden>
     <h2 id="h-quick">Operación suelta</h2>
     <p class="note">Para una cuenta directa con números, por ejemplo Ix = V1 / −2.5j.</p>
     <input type="text" id="quick" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" aria-label="Operación con números complejos">
@@ -350,6 +387,7 @@ select{
     </dl>
     <p class="note">Por casillas: en cada hueco va solo el número que multiplica a esa incógnita, y un hueco vacío cuenta como cero. Escrita: hace falta el mismo número de ecuaciones que de incógnitas.</p>
   </section>
+  </div>
 </main>
 
 <script id="core">
@@ -366,13 +404,59 @@ const cdiv = (a, b) => {
   return C((a.re * b.re + a.im * b.im) / d, (a.im * b.re - a.re * b.im) / d);
 };
 
+/* ---- functions used by the calculator tabs ---- */
+let ANGLE_DEG = true;   // sen, cos and tan read the angle in degrees or radians
+let ANS = null;         // last result, read by the name Ans
+const cexp = (z) => { const m = Math.exp(z.re); return C(m * Math.cos(z.im), m * Math.sin(z.im)); };
+const cln = (z) => {
+  const m = cabs(z);
+  if (m === 0) throw new CalcError('El logaritmo de cero no existe.');
+  return C(Math.log(m), Math.atan2(z.im, z.re));
+};
+function csqrt(z) {
+  const m = cabs(z);
+  if (m === 0) return C(0, 0);
+  if (z.im === 0) return z.re >= 0 ? C(Math.sqrt(z.re), 0) : C(0, Math.sqrt(-z.re));
+  const a = Math.atan2(z.im, z.re) / 2, r = Math.sqrt(m);
+  return C(r * Math.cos(a), r * Math.sin(a));
+}
+function cpow(z, w) {
+  if (z.re === 0 && z.im === 0) {
+    if (w.re === 0 && w.im === 0) return C(1, 0);
+    if (w.im === 0 && w.re > 0) return C(0, 0);
+    throw new CalcError('Hay una división entre cero.');
+  }
+  if (w.im === 0 && Number.isInteger(w.re) && Math.abs(w.re) <= 4096) {
+    let n = Math.abs(w.re), base = z, out = C(1, 0);
+    while (n > 0) { if (n & 1) out = cmul(out, base); base = cmul(base, base); n >>= 1; }
+    return w.re < 0 ? cdiv(C(1, 0), out) : out;
+  }
+  if (z.im === 0 && w.im === 0 && z.re > 0) return C(Math.pow(z.re, w.re), 0);
+  return cexp(cmul(w, cln(z)));
+}
+function ctrig(name, z) {
+  const k = ANGLE_DEG ? Math.PI / 180 : 1;
+  const a = z.re * k, b = z.im * k;
+  const sn = C(Math.sin(a) * Math.cosh(b), Math.cos(a) * Math.sinh(b));
+  const cs = C(Math.cos(a) * Math.cosh(b), -Math.sin(a) * Math.sinh(b));
+  if (name === 'sin') return sn;
+  if (name === 'cos') return cs;
+  if (cabs(cs) < 1e-15) throw new CalcError('La tangente no existe en ese ángulo.');
+  return cdiv(sn, cs);
+}
+const FUNCS = {
+  sen: (z) => ctrig('sin', z), sin: (z) => ctrig('sin', z), cos: (z) => ctrig('cos', z), tan: (z) => ctrig('tan', z),
+  sqrt: csqrt, raiz: csqrt, ln: cln, log: (z) => cdiv(cln(z), C(Math.LN10, 0)), exp: cexp,
+  abs: (z) => C(cabs(z), 0), conj: (z) => C(z.re, -z.im)
+};
+
 /* ---- tokenizer ---- */
 const NUM = /^(?:\d+\.?\d*|\.\d+)/;
 const POLAR = /^\s*[∠<]\s*([-+]?(?:\d+\.?\d*|\.\d+))/;
 const isWord = (ch) => !!ch && /[A-Za-z0-9_]/.test(ch);
 
 function tokenize(src) {
-  const s = src.replace(/[−–—]/g, '-').replace(/[×·]/g, '*').replace(/÷/g, '/').replace(/°/g, '');
+  const s = src.replace(/[−–—]/g, '-').replace(/[×·]/g, '*').replace(/÷/g, '/').replace(/°/g, '').replace(/²/g, '^2').replace(/⁻¹/g, '^(-1)');
   const out = [];
   let i = 0;
   while (i < s.length) {
@@ -409,7 +493,9 @@ function tokenize(src) {
       i += m[0].length;
       continue;
     }
-    if ('+-*/()'.includes(ch)) { out.push({ t: ch }); i++; continue; }
+    if (ch === 'π') { out.push({ t: 'num', v: C(Math.PI, 0) }); i++; continue; }
+    if (ch === '√') { out.push({ t: 'id', name: 'sqrt' }); i++; continue; }
+    if ('+-*/()^'.includes(ch)) { out.push({ t: ch }); i++; continue; }
     if (ch === '<' || ch === '∠') throw new CalcError('La forma polar va como magnitud∠ángulo, por ejemplo 20∠0.');
     if (ch === '=') throw new CalcError('Cada ecuación lleva un solo signo =.');
     throw new CalcError('No reconozco el símbolo "' + ch + '".');
@@ -462,7 +548,7 @@ function parseLinear(src) {
       const k = peek();
       if (!k) break;
       if (k.t === '*' || k.t === '/') { p++; const b = unary(); a = k.t === '*' ? lmul(a, b) : ldiv(a, b); }
-      else if (k.t === 'num' || k.t === 'id' || k.t === '(') a = lmul(a, primary());
+      else if (k.t === 'num' || k.t === 'id' || k.t === '(') a = lmul(a, power());
       else break;
     }
     return a;
@@ -470,13 +556,39 @@ function parseLinear(src) {
   function unary() {
     const k = peek();
     if (k && (k.t === '-' || k.t === '+')) { p++; const a = unary(); return k.t === '-' ? lscale(a, C(-1, 0)) : a; }
-    return primary();
+    return power();
+  }
+  function power() {
+    const a = primary();
+    const k = peek();
+    if (k && k.t === '^') {
+      p++;
+      const b = unary();
+      if (a.v.size || b.v.size) throw new CalcError('No se puede elevar una incógnita a una potencia. El sistema tiene que ser lineal.');
+      return lconst(cpow(a.c, b.c));
+    }
+    return a;
   }
   function primary() {
     const k = t[p++];
     if (!k) throw new CalcError('La expresión está incompleta.');
     if (k.t === 'num') return lconst(k.v);
-    if (k.t === 'id') return lvar(k.name);
+    if (k.t === 'id') {
+      const fn = Object.prototype.hasOwnProperty.call(FUNCS, k.name.toLowerCase()) ? FUNCS[k.name.toLowerCase()] : null;
+      if (fn && peek() && peek().t === '(') {
+        p++;
+        const a = expr();
+        const c = t[p++];
+        if (!c || c.t !== ')') throw new CalcError('Falta cerrar un paréntesis.');
+        if (a.v.size) throw new CalcError('La función ' + k.name + ' necesita un número, no una incógnita.');
+        return lconst(fn(a.c));
+      }
+      if (k.name === 'Ans') {
+        if (!ANS) throw new CalcError('Todavía no hay un resultado anterior.');
+        return lconst(ANS);
+      }
+      return lvar(k.name);
+    }
     if (k.t === '(') {
       const a = expr();
       const c = t[p++];
@@ -596,7 +708,15 @@ function sourcePhasor(amp, fn, phaseDeg) {
   const r = a * Math.PI / 180;
   return { mag: amp, ang: a, z: C(amp * Math.cos(r), amp * Math.sin(r)) };
 }
-if (typeof module !== 'undefined') module.exports = { parseEquation, parseLinear, solveForms, fmtComplex, fmtTime, sourcePhasor, CalcError };
+function fmtReal(x) {
+  if (Math.abs(x) < 1e-14) return '0';
+  return String(Number(x.toPrecision(12)));
+}
+function isRealish(z) {
+  const m = Math.hypot(z.re, z.im);
+  return m === 0 || Math.abs(z.im) <= 1e-12 * m;
+}
+if (typeof module !== 'undefined') module.exports = { parseEquation, parseLinear, solveForms, fmtComplex, fmtTime, sourcePhasor, fmtReal, isRealish, CalcError, setAngle: (d) => { ANGLE_DEG = d; }, setAns: (z) => { ANS = z; } };
 </script>
 
 <script>
@@ -1129,6 +1249,224 @@ if (typeof module !== 'undefined') module.exports = { parseEquation, parseLinear
   computeQuick();
   computeSrc();
   computeZ();
+})();
+</script>
+<script>
+(function () {
+  const TKEY = 'calc-complejos-tabs-v1';
+  const $ = (id) => document.getElementById(id);
+  const TABS = ['calc', 'cx', 'sys'];
+  let active = 'calc';
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(TKEY) || 'null'); } catch (e) {}
+  if (saved && TABS.includes(saved.tab)) active = saved.tab;
+  if (saved && typeof saved.deg === 'boolean') ANGLE_DEG = saved.deg;
+
+  const pretty = (s) => s.replace(/-/g, '−');
+  function el(tag, cls, text) {
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+
+  // what each key shows on screen (d) and what the parser reads (s)
+  const TOK = {
+    add: { d: '+', s: '+', op: true }, sub: { d: '−', s: '-', op: true }, mul: { d: '×', s: '*', op: true }, div: { d: '÷', s: '/', op: true },
+    pow: { d: '^', s: '^', op: true }, sq: { d: '²', s: '²', op: true }, inv: { d: '⁻¹', s: '⁻¹', op: true },
+    lp: { d: '(', s: '(' }, rp: { d: ')', s: ')' }, dot: { d: '.', s: '.' }, pi: { d: 'π', s: 'π' },
+    sqrt: { d: '√(', s: 'sqrt(' }, sen: { d: 'sen(', s: 'sen(' }, cos: { d: 'cos(', s: 'cos(' }, tan: { d: 'tan(', s: 'tan(' },
+    conj: { d: 'conj(', s: 'conj(' }, j: { d: 'j', s: 'j' }, ang: { d: '∠', s: '∠' }, ans: { d: 'Ans', s: '(Ans)' }
+  };
+  for (let n = 0; n <= 9; n++) TOK[String(n)] = { d: String(n), s: String(n) };
+
+  const LABEL = { add: '+', sub: '−', mul: '×', div: '÷', pow: 'xʸ', sq: 'x²', inv: '1/x', lp: '(', rp: ')', dot: '.', pi: 'π', sqrt: '√', sen: 'sen', cos: 'cos', tan: 'tan', conj: 'conj', j: 'j', ang: '∠', ans: 'Ans', bk: '⌫', clr: 'C', eq: '=', deg: 'DEG' };
+  const NAME = { add: 'más', sub: 'menos', mul: 'por', div: 'entre', pow: 'elevar a una potencia', sq: 'al cuadrado', inv: 'inverso', sqrt: 'raíz cuadrada', bk: 'borrar el último', clr: 'borrar todo', eq: 'igual', ans: 'resultado anterior', ang: 'ángulo de la forma polar', conj: 'conjugado', deg: 'cambiar entre grados y radianes', dot: 'punto decimal', pi: 'pi', lp: 'abrir paréntesis', rp: 'cerrar paréntesis' };
+  const KIND = { add: 'op', sub: 'op', mul: 'op', div: 'op', eq: 'equal', bk: 'fn', clr: 'fn', deg: 'fn', sen: 'fn', cos: 'fn', tan: 'fn', sqrt: 'fn', sq: 'fn', pow: 'fn', inv: 'fn', conj: 'fn', lp: 'fn', rp: 'fn', pi: 'fn', ans: 'fn', j: 'fn', ang: 'fn' };
+  const PADS = {
+    calc: ['deg', 'sen', 'cos', 'tan', 'bk', 'sqrt', 'sq', 'pow', 'lp', 'rp', '7', '8', '9', 'div', 'clr', '4', '5', '6', 'mul', 'pi', '1', '2', '3', 'sub', 'ans', '0w', 'dot', 'add', 'eq'],
+    cx: ['j', 'ang', 'lp', 'rp', 'bk', 'sqrt', 'sq', 'pow', 'inv', 'conj', '7', '8', '9', 'div', 'clr', '4', '5', '6', 'mul', 'pi', '1', '2', '3', 'sub', 'ans', '0w', 'dot', 'add', 'eq']
+  };
+
+  const calcs = {};
+  function persist() {
+    try {
+      localStorage.setItem(TKEY, JSON.stringify({ tab: active, deg: ANGLE_DEG, hist: { calc: calcs.calc.hist.slice(0, 12), cx: calcs.cx.hist.slice(0, 12) } }));
+    } catch (e) {}
+  }
+
+  function makeCalc(kind, root) {
+    const c = { kind, tokens: [], ans: null, shown: null, lastExpr: '', err: '', hist: [] };
+    const oldHist = saved && saved.hist && Array.isArray(saved.hist[kind]) ? saved.hist[kind] : [];
+    c.hist = oldHist.filter((h) => h && typeof h.e === 'string' && typeof h.r === 'string' && typeof h.re === 'number' && typeof h.im === 'number').slice(0, 12);
+
+    const histEl = el('div', 'c-hist');
+    const disp = el('div', 'c-disp');
+    const modeEl = el('div', 'c-mode');
+    const exprEl = el('div', 'c-expr');
+    const resEl = el('div', 'c-res');
+    const subEl = el('div', 'c-sub');
+    disp.setAttribute('aria-live', 'polite');
+    disp.append(modeEl, exprEl, resEl, subEl);
+    const pad = el('div', 'c-pad');
+    PADS[kind].forEach((id) => {
+      const wide = id === '0w';
+      const key = wide ? '0' : id;
+      const b = el('button', 'ck' + (KIND[key] ? ' ' + KIND[key] : '') + (wide ? ' wide' : ''), LABEL[key] || key);
+      b.type = 'button';
+      b.dataset.k = key;
+      if (NAME[key]) b.setAttribute('aria-label', NAME[key]);
+      pad.appendChild(b);
+    });
+    root.textContent = '';
+    root.append(histEl, disp, pad);
+
+    const shownExpr = (closed) => c.tokens.map((t) => t.d).join('') + (closed ? ')'.repeat(open()) : '');
+    function open() {
+      let n = 0;
+      c.tokens.forEach((t) => { for (const ch of t.s) { if (ch === '(') n++; else if (ch === ')') n--; } });
+      return Math.max(0, n);
+    }
+    function evaluate() {
+      ANS = c.ans;
+      const f = parseLinear(c.tokens.map((t) => t.s).join('') + ')'.repeat(open()));
+      if (f.v.size) throw new CalcError('Aquí van solo números.');
+      if (!isFinite(f.c.re) || !isFinite(f.c.im)) throw new CalcError('El resultado es demasiado grande.');
+      return f.c;
+    }
+    function format(z) {
+      if (kind === 'cx') {
+        const d = parseInt(($('dec') || { value: '3' }).value, 10) || 3;
+        const f = fmtComplex(z, d);
+        return { main: pretty(f.rect), sub: pretty(f.polar) };
+      }
+      if (isRealish(z)) return { main: pretty(fmtReal(z.re)), sub: '' };
+      return { main: pretty(fmtComplex(z, 6).rect), sub: '' };
+    }
+
+    function render() {
+      modeEl.textContent = kind === 'calc' ? (ANGLE_DEG ? 'Ángulos en grados' : 'Ángulos en radianes') : 'Polar con ángulo en grados';
+      const degKey = pad.querySelector('[data-k="deg"]');
+      if (degKey) degKey.textContent = ANGLE_DEG ? 'DEG' : 'RAD';
+      resEl.className = 'c-res';
+      exprEl.className = 'c-expr';
+      subEl.textContent = '';
+      if (c.err) {
+        exprEl.textContent = shownExpr(false);
+        exprEl.classList.add('live');
+        resEl.textContent = c.err;
+        resEl.classList.add('err');
+      } else if (c.tokens.length) {
+        exprEl.textContent = shownExpr(false);
+        exprEl.classList.add('live');
+        let pre = '';
+        if (c.tokens.length > 1) {
+          try { const f = format(evaluate()); pre = '= ' + f.main; subEl.textContent = f.sub; } catch (e) { pre = ''; }
+        }
+        resEl.textContent = pre;
+        resEl.classList.add('pre');
+      } else if (c.shown) {
+        exprEl.textContent = c.lastExpr + ' =';
+        resEl.textContent = c.shown.main;
+        subEl.textContent = c.shown.sub;
+      } else {
+        exprEl.textContent = '';
+        resEl.textContent = '0';
+      }
+      histEl.textContent = '';
+      c.hist.slice(c.shown && !c.tokens.length ? 1 : 0, c.shown && !c.tokens.length ? 4 : 3).reverse().forEach((h) => {
+        const b = el('button', '', h.e + ' = ' + h.r);
+        b.type = 'button';
+        b.dataset.re = h.re;
+        b.dataset.im = h.im;
+        b.setAttribute('aria-label', 'Usar el resultado de ' + h.e);
+        histEl.appendChild(b);
+      });
+    }
+
+    function press(k) {
+      if (k === 'deg') { ANGLE_DEG = !ANGLE_DEG; c.err = ''; Object.values(calcs).forEach((x) => x.render()); persist(); return; }
+      if (k === 'clr') { c.tokens = []; c.shown = null; c.err = ''; render(); return; }
+      if (k === 'bk') { c.err = ''; c.tokens.pop(); render(); return; }
+      if (k === 'eq') {
+        if (!c.tokens.length) return;
+        try {
+          const z = evaluate();
+          const f = format(z);
+          const e = shownExpr(true);
+          c.hist.unshift({ e, r: f.main, re: z.re, im: z.im });
+          c.hist = c.hist.slice(0, 12);
+          c.ans = z; c.lastExpr = e; c.shown = f; c.tokens = []; c.err = '';
+        } catch (e) {
+          c.err = e instanceof CalcError ? e.message : 'No se pudo calcular. Revisa la operación.';
+        }
+        render();
+        persist();
+        return;
+      }
+      const t = TOK[k];
+      if (!t) return;
+      if (k === 'ans' && !c.ans) return;
+      c.err = '';
+      if (!c.tokens.length && c.shown && t.op && c.ans) c.tokens.push(TOK.ans);
+      if (c.tokens.length >= 80) return;
+      c.tokens.push(t);
+      render();
+    }
+
+    pad.addEventListener('click', (ev) => { const b = ev.target.closest('.ck'); if (b) press(b.dataset.k); });
+    histEl.addEventListener('click', (ev) => {
+      const b = ev.target.closest('button');
+      if (!b) return;
+      c.ans = C(parseFloat(b.dataset.re), parseFloat(b.dataset.im));
+      c.err = '';
+      c.tokens.push(TOK.ans);
+      render();
+    });
+    c.render = render;
+    c.press = press;
+    return c;
+  }
+
+  calcs.calc = makeCalc('calc', $('calc-root'));
+  calcs.cx = makeCalc('cx', $('cx-root'));
+
+  function show(tab) {
+    active = tab;
+    TABS.forEach((t) => {
+      $('p-' + t).hidden = t !== tab;
+      $('t-' + t).setAttribute('aria-selected', t === tab ? 'true' : 'false');
+    });
+    if (calcs[tab]) calcs[tab].render();
+  }
+  document.querySelector('.tabs').addEventListener('click', (ev) => {
+    const b = ev.target.closest('.tab');
+    if (!b) return;
+    show(b.dataset.tab);
+    persist();
+  });
+  const dec = $('dec');
+  if (dec) dec.addEventListener('change', () => calcs.cx.render());
+
+  // teclado físico en la computadora
+  const KEYMAP = { '+': 'add', '-': 'sub', '*': 'mul', 'x': 'mul', '/': 'div', '^': 'pow', '(': 'lp', ')': 'rp', '.': 'dot', ',': 'dot', 'Enter': 'eq', '=': 'eq', 'Backspace': 'bk', 'Escape': 'clr', 'Delete': 'clr' };
+  document.addEventListener('keydown', (ev) => {
+    const c = calcs[active];
+    if (!c || ev.ctrlKey || ev.metaKey || ev.altKey) return;
+    const tg = ev.target;
+    if (tg && (tg.tagName === 'INPUT' || tg.tagName === 'SELECT' || tg.tagName === 'TEXTAREA')) return;
+    let k = null;
+    if (/^[0-9]$/.test(ev.key)) k = ev.key;
+    else if (KEYMAP[ev.key]) k = KEYMAP[ev.key];
+    else if (active === 'cx' && ev.key === 'j') k = 'j';
+    if (!k) return;
+    // Enter sobre una tecla de la calculadora cuenta como "=", no como volver a pulsar esa tecla
+    if (k === 'eq' && ev.key === 'Enter' && tg && tg.tagName === 'BUTTON' && !tg.classList.contains('ck')) return;
+    ev.preventDefault();
+    c.press(k);
+  });
+
+  show(active);
 })();
 </script>
 <script>
