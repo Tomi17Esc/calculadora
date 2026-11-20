@@ -282,9 +282,6 @@ select{
     <div class="sec-head">
       <h2 id="h-res">Resultados</h2>
       <div class="opts">
-        <label class="opt extra" for="omega" hidden>ω en rad/s
-          <input type="text" class="small" id="omega" value="4" inputmode="decimal" autocomplete="off">
-        </label>
         <label class="opt" for="dec">Decimales
           <select id="dec">
             <option value="2">2</option>
@@ -301,92 +298,10 @@ select{
     </div>
   </section>
 
-  <div class="actions">
-    <button class="btn" id="more" type="button" aria-expanded="false">Más herramientas</button>
-  </div>
 
-  <section class="extra" aria-labelledby="h-src" hidden>
-    <h2 id="h-src">Fuente en seno o coseno</h2>
-    <p class="note">Pasa la fuente a fasor antes de escribirla en tus ecuaciones. El seno va 90° atrás del coseno.</p>
-    <div class="src-row">
-      <label class="field" for="src-amp">Amplitud
-        <input type="text" id="src-amp" value="10" inputmode="decimal" autocomplete="off">
-      </label>
-      <label class="field" for="src-fn">Función
-        <select id="src-fn">
-          <option value="sen" selected>sen</option>
-          <option value="cos">cos</option>
-        </select>
-      </label>
-      <label class="field" for="src-ph">Fase en grados
-        <input type="text" id="src-ph" value="0" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false">
-      </label>
-    </div>
-    <div class="results" id="src-out" aria-live="polite"></div>
-    <div class="actions">
-      <button class="btn" id="src-ins" type="button">Insertar en la ecuación</button>
-    </div>
-  </section>
 
-  <section class="extra" aria-labelledby="h-z" hidden>
-    <div class="sec-head">
-      <h2 id="h-z">Inductor y capacitor</h2>
-      <label class="opt" for="omega2">ω en rad/s
-        <input type="text" class="small" id="omega2" inputmode="decimal" autocomplete="off">
-      </label>
-    </div>
-    <p class="note">Pasa cada elemento a su impedancia. El inductor queda en jωL y el capacitor en 1/jωC.</p>
-    <div class="z-item">
-      <label class="field" for="z-l">Inductor
-        <input type="text" id="z-l" value="1" inputmode="decimal" autocomplete="off">
-      </label>
-      <label class="field" for="z-lu">Unidad
-        <select id="z-lu">
-          <option value="1" selected>H</option>
-          <option value="1e-3">mH</option>
-          <option value="1e-6">µH</option>
-        </select>
-      </label>
-      <div class="z-out" id="z-l-out" aria-live="polite"></div>
-      <button class="btn" id="z-l-ins" type="button">Insertar</button>
-    </div>
-    <div class="z-item">
-      <label class="field" for="z-c">Capacitor
-        <input type="text" id="z-c" value="0.1" inputmode="decimal" autocomplete="off">
-      </label>
-      <label class="field" for="z-cu">Unidad
-        <select id="z-cu">
-          <option value="1" selected>F</option>
-          <option value="1e-3">mF</option>
-          <option value="1e-6">µF</option>
-          <option value="1e-9">nF</option>
-        </select>
-      </label>
-      <div class="z-out" id="z-c-out" aria-live="polite"></div>
-      <button class="btn" id="z-c-ins" type="button">Insertar</button>
-    </div>
-  </section>
 
-  <section aria-labelledby="h-quick" hidden>
-    <h2 id="h-quick">Operación suelta</h2>
-    <p class="note">Para una cuenta directa con números, por ejemplo Ix = V1 / −2.5j.</p>
-    <input type="text" id="quick" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" aria-label="Operación con números complejos">
-    <div class="results" id="quick-out" aria-live="polite"></div>
-  </section>
 
-  <section class="extra" aria-labelledby="h-how" hidden>
-    <h2 id="h-how">Cómo escribir</h2>
-    <dl class="howto">
-      <dt>2j &nbsp;j2 &nbsp;-2.5j</dt><dd>Parte imaginaria. Se usa j, igual que en clase.</dd>
-      <dt>20∠0 &nbsp;20&lt;0</dt><dd>Forma polar, con el ángulo en grados.</dd>
-      <dt>V1 &nbsp;V2 &nbsp;Ix</dt><dd>Incógnitas. Ponles el nombre que quieras, empezando con letra.</dd>
-      <dt>5V2 &nbsp;(-3+2j)V1</dt><dd>Multiplica sin escribir el signo.</dd>
-      <dt>(V1-V2)/4j</dt><dd>Divide entre 4j completo.</dd>
-      <dt>V0 = 20∠0</dt><dd>Un valor conocido se escribe como una ecuación más.</dd>
-      <dt>10 sen(2t)</dt><dd>Una fuente en seno se escribe con 90° menos: 10∠-90.</dd>
-    </dl>
-    <p class="note">Por casillas: en cada hueco va solo el número que multiplica a esa incógnita, y un hueco vacío cuenta como cero. Escrita: hace falta el mismo número de ecuaciones que de incógnitas.</p>
-  </section>
   </div>
 </main>
 
@@ -723,7 +638,6 @@ if (typeof module !== 'undefined') module.exports = { parseEquation, parseLinear
 (function () {
   const KEY = 'calc-complejos-v1';
   const EXAMPLE = ['(-3+2j)V1 - 5V2 = 40j', '11V1 + 15V2 = 0'];
-  const EXAMPLE_QUICK = '(18+6j)/(-2.5j)';
   const SYMBOLS = ['j', '∠', '(', ')', '/', '=', '+', '-'];
   const BASE_VARS = ['V1', 'V2', 'V3', 'V4', 'I1', 'I2', 'I3', 'I4'];
   const MIN_ROWS = 4;
@@ -731,11 +645,7 @@ if (typeof module !== 'undefined') module.exports = { parseEquation, parseLinear
 
   const $ = (id) => document.getElementById(id);
   const eqsEl = $('eqs'), keysEl = $('keys'), resEl = $('results'), statusEl = $('status');
-  const quickEl = $('quick'), quickOut = $('quick-out'), decEl = $('dec'), omegaEl = $('omega');
-  const srcAmp = $('src-amp'), srcFn = $('src-fn'), srcPh = $('src-ph'), srcOut = $('src-out');
-  let srcText = '';
-  const omega2 = $('omega2'), zL = $('z-l'), zLu = $('z-lu'), zC = $('z-c'), zCu = $('z-cu');
-  const zText = { l: '', c: '' };
+  const decEl = $('dec');
 
   let rows = EXAMPLE.slice();
   let lastInput = null;
@@ -744,7 +654,6 @@ if (typeof module !== 'undefined') module.exports = { parseEquation, parseLinear
   const blocksEl = $('blocks'), bnEl = $('bn'), bletterEl = $('bletter');
   const EX_A = [['-3+2j', '-5'], ['11', '15']], EX_B = ['40j', '0'];
   let mode = 'blocks';
-  let showExtras = false;
   let cellA = [0, 1, 2, 3].map(() => ['', '', '', '']);
   let cellB = ['', '', '', ''];
   function loadExampleCells() {
@@ -761,18 +670,8 @@ if (typeof module !== 'undefined') module.exports = { parseEquation, parseLinear
     const saved = JSON.parse(localStorage.getItem(KEY) || 'null');
     if (saved && Array.isArray(saved.rows) && saved.rows.length && saved.rows.every((r) => typeof r === 'string')) {
       rows = saved.rows.slice(0, 12);
-      if (typeof saved.quick === 'string') quickEl.value = saved.quick;
       if (['2', '3', '4', '6'].includes(String(saved.dec))) decEl.value = String(saved.dec);
-      omegaEl.value = typeof saved.omega === 'string' ? saved.omega : '';
-      if (typeof saved.srcAmp === 'string') srcAmp.value = saved.srcAmp;
-      if (typeof saved.srcPh === 'string') srcPh.value = saved.srcPh;
-      if (saved.srcFn === 'cos' || saved.srcFn === 'sen') srcFn.value = saved.srcFn;
-      if (typeof saved.zL === 'string') zL.value = saved.zL;
-      if (typeof saved.zC === 'string') zC.value = saved.zC;
-      if (['1', '1e-3', '1e-6'].includes(saved.zLu)) zLu.value = saved.zLu;
-      if (['1', '1e-3', '1e-6', '1e-9'].includes(saved.zCu)) zCu.value = saved.zCu;
       if (saved.mode === 'text' || saved.mode === 'blocks') mode = saved.mode;
-      showExtras = saved.extras === true;
       const okA = Array.isArray(saved.cellA) && saved.cellA.length === 4 && saved.cellA.every((r) => Array.isArray(r) && r.length === 4 && r.every((v) => typeof v === 'string'));
       const okB = Array.isArray(saved.cellB) && saved.cellB.length === 4 && saved.cellB.every((v) => typeof v === 'string');
       if (okA && okB) {
@@ -781,17 +680,13 @@ if (typeof module !== 'undefined') module.exports = { parseEquation, parseLinear
         if (['2', '3', '4'].includes(String(saved.bn))) bnEl.value = String(saved.bn);
         if (saved.letter === 'V' || saved.letter === 'I') bletterEl.value = saved.letter;
       }
-    } else {
-      quickEl.value = EXAMPLE_QUICK;
     }
-  } catch (e) {
-    quickEl.value = EXAMPLE_QUICK;
-  }
+  } catch (e) {}
 
   pad(rows);
 
   function save() {
-    try { localStorage.setItem(KEY, JSON.stringify({ rows, quick: quickEl.value, dec: decEl.value, omega: omegaEl.value, srcAmp: srcAmp.value, srcPh: srcPh.value, srcFn: srcFn.value, zL: zL.value, zLu: zLu.value, zC: zC.value, zCu: zCu.value, mode, cellA, cellB, bn: bnEl.value, letter: bletterEl.value, extras: showExtras })); } catch (e) {}
+    try { localStorage.setItem(KEY, JSON.stringify({ rows, dec: decEl.value, mode, cellA, cellB, bn: bnEl.value, letter: bletterEl.value })); } catch (e) {}
   }
 
   function el(tag, cls, text) {
@@ -858,15 +753,6 @@ if (typeof module !== 'undefined') module.exports = { parseEquation, parseLinear
     });
   }
 
-  function num(text) {
-    const t = text.trim().replace(/[−–—]/g, '-').replace(',', '.');
-    if (!/^[-+]?(\d+\.?\d*|\.\d+)$/.test(t)) return null;
-    return parseFloat(t);
-  }
-  function omega() {
-    const w = num(omegaEl.value);
-    return w == null || w === 0 ? null : w;
-  }
   function resultRow(name, lines) {
     const r = el('div', 'res');
     r.appendChild(el('div', 'res-name', name));
@@ -881,49 +767,9 @@ if (typeof module !== 'undefined') module.exports = { parseEquation, parseLinear
     return r;
   }
   function fullLines(z, d) {
-    const f = fmtComplex(z, d), t = fmtTime(z, d, omega());
-    const lines = [['Rectangular', f.rect, 'rect'], ['Polar', f.polar, 'polar']];
-    if (showExtras) lines.push(['Coseno', t.cos, 'time'], ['Seno', t.sen, 'time']);
-    return { f, t, lines };
+    const f = fmtComplex(z, d);
+    return { f, lines: [['Rectangular', f.rect, 'rect'], ['Polar', f.polar, 'polar']] };
   }
-  function computeSrc() {
-    const d = parseInt(decEl.value, 10);
-    srcOut.textContent = '';
-    srcText = '';
-    const a = num(srcAmp.value), ph = srcPh.value.trim() === '' ? 0 : num(srcPh.value);
-    srcAmp.classList.toggle('bad', a == null);
-    srcPh.classList.toggle('bad', ph == null);
-    if (a == null || ph == null) {
-      srcOut.appendChild(el('p', 'note err', 'Escribe la amplitud y la fase como números, por ejemplo 10 y -30.'));
-      return;
-    }
-    const sp = sourcePhasor(a, srcFn.value, ph);
-    const f = fmtComplex(sp.z, d);
-    const polar = fmtNum(sp.mag, d) + ' ∠ ' + fmtNum(sp.ang, d) + '°';
-    srcText = fmtNum(sp.mag, 6) + '∠' + fmtNum(sp.ang, 6);
-    srcOut.appendChild(resultRow('=', [['Fasor', polar, 'rect'], ['Rectangular', f.rect, 'polar'], ['Se escribe', srcText, 'time']]));
-  }
-
-  function computeZ() {
-    const d = parseInt(decEl.value, 10), w = omega();
-    [['l', zL, zLu], ['c', zC, zCu]].forEach((it) => {
-      const k = it[0], inp = it[1], unit = it[2];
-      const out = $('z-' + k + '-out');
-      out.textContent = '';
-      zText[k] = '';
-      const v = num(inp.value);
-      const badVal = v == null || v <= 0;
-      inp.classList.toggle('bad', badVal);
-      const msg = w == null ? 'Falta escribir ω.' : (badVal ? 'Escribe un valor mayor que cero.' : '');
-      if (msg) { out.appendChild(el('span', 'note err', msg)); return; }
-      const x = v * parseFloat(unit.value);
-      const im = k === 'l' ? w * x : -1 / (w * x);
-      out.appendChild(el('span', 'lab', 'Impedancia'));
-      out.appendChild(el('span', 'val rect', pretty(fmtComplex(C(0, im), d).rect) + ' Ω'));
-      zText[k] = fmtNum(im, 9) + 'j';
-    });
-  }
-
   function blockNames() {
     const n = parseInt(bnEl.value, 10), out = [];
     for (let j = 0; j < n; j++) out.push(bletterEl.value + (j + 1));
@@ -1005,13 +851,6 @@ if (typeof module !== 'undefined') module.exports = { parseEquation, parseLinear
     return { forms: any ? forms : [], bad };
   }
 
-  function applyExtras() {
-    document.querySelectorAll('.extra').forEach((e) => { e.hidden = !showExtras; });
-    const b = $('more');
-    b.textContent = showExtras ? 'Ocultar herramientas' : 'Más herramientas';
-    b.setAttribute('aria-expanded', showExtras ? 'true' : 'false');
-  }
-
   function applyMode() {
     const b = mode === 'blocks';
     $('m-blocks').setAttribute('aria-pressed', b ? 'true' : 'false');
@@ -1068,30 +907,13 @@ if (typeof module !== 'undefined') module.exports = { parseEquation, parseLinear
       sol.names.forEach((nm, i) => {
         const r = fullLines(sol.values[i], d);
         resEl.appendChild(resultRow(nm, r.lines));
-        lines.push(nm + ' = ' + r.f.rect + ' = ' + r.f.polar + (showExtras ? ' = ' + r.t.cos + ' = ' + r.t.sen : ''));
+        lines.push(nm + ' = ' + r.f.rect + ' = ' + r.f.polar);
       });
       lastCopy = lines.join('\n');
       setStatus('ok', 'Resuelto, ' + sol.names.length + (sol.names.length === 1 ? ' incógnita' : ' incógnitas'));
     } catch (e) {
       setStatus('err', 'Sin solución todavía');
       resEl.appendChild(el('p', 'note err', message(e)));
-    }
-  }
-
-  function computeQuick() {
-    const d = parseInt(decEl.value, 10);
-    const txt = quickEl.value;
-    quickOut.textContent = '';
-    quickEl.classList.remove('bad');
-    if (!txt.trim()) return;
-    try {
-      if (txt.includes('=')) throw new CalcError('Aquí va solo la operación, sin signo =.');
-      const f = parseLinear(txt);
-      if (f.v.size) throw new CalcError('Aquí van solo números. Las incógnitas van en las ecuaciones de arriba.');
-      quickOut.appendChild(resultRow('=', fullLines(f.c, d).lines));
-    } catch (e) {
-      quickEl.classList.add('bad');
-      quickOut.appendChild(el('p', 'note err', message(e)));
     }
   }
 
@@ -1145,26 +967,7 @@ if (typeof module !== 'undefined') module.exports = { parseEquation, parseLinear
     if (b) insertText(b.dataset.ins);
   });
 
-  quickEl.addEventListener('focus', () => { lastInput = quickEl; });
-  quickEl.addEventListener('input', () => { computeQuick(); save(); });
-  decEl.addEventListener('change', () => { compute(); computeQuick(); computeSrc(); computeZ(); save(); });
-  omegaEl.addEventListener('input', () => { omega2.value = omegaEl.value; compute(); computeQuick(); computeZ(); save(); });
-  omega2.addEventListener('input', () => { omegaEl.value = omega2.value; compute(); computeQuick(); computeZ(); save(); });
-  [zL, zC].forEach((e) => e.addEventListener('input', () => { computeZ(); save(); }));
-  [zLu, zCu].forEach((e) => e.addEventListener('change', () => { computeZ(); save(); }));
-  ['l', 'c'].forEach((k) => {
-    const b = $('z-' + k + '-ins');
-    b.addEventListener('pointerdown', (ev) => ev.preventDefault());
-    b.addEventListener('click', () => { if (zText[k]) insertText(zText[k]); });
-  });
-  [srcAmp, srcPh].forEach((e) => e.addEventListener('input', () => { computeSrc(); save(); }));
-  srcFn.addEventListener('change', () => { computeSrc(); save(); });
-  $('src-ins').addEventListener('pointerdown', (ev) => ev.preventDefault());
-  $('src-ins').addEventListener('click', () => {
-    if (!srcText) return;
-    if (lastInput === srcAmp || lastInput === srcPh) lastInput = null;
-    insertText(srcText);
-  });
+  decEl.addEventListener('change', () => { compute(); save(); });
 
   $('add').addEventListener('click', () => {
     if (rows.length >= 12) return;
@@ -1185,13 +988,6 @@ if (typeof module !== 'undefined') module.exports = { parseEquation, parseLinear
       renderRows(0);
     }
     compute();
-    save();
-  });
-  $('more').addEventListener('click', () => {
-    showExtras = !showExtras;
-    applyExtras();
-    compute();
-    computeQuick();
     save();
   });
   ['m-blocks', 'm-text'].forEach((id) => {
@@ -1224,13 +1020,8 @@ if (typeof module !== 'undefined') module.exports = { parseEquation, parseLinear
     rows = pad(EXAMPLE.slice());
     loadExampleCells();
     renderBlocks();
-    quickEl.value = EXAMPLE_QUICK;
-    omegaEl.value = '4';
-    omega2.value = '4';
     renderRows();
     compute();
-    computeQuick();
-    computeZ();
     save();
   });
   $('copy').addEventListener('click', () => {
@@ -1240,15 +1031,10 @@ if (typeof module !== 'undefined') module.exports = { parseEquation, parseLinear
     try { navigator.clipboard.writeText(lastCopy).then(() => done(true), () => done(false)); } catch (e) { done(false); }
   });
 
-  omega2.value = omegaEl.value;
   renderBlocks();
   applyMode();
-  applyExtras();
   renderRows();
   compute();
-  computeQuick();
-  computeSrc();
-  computeZ();
 })();
 </script>
 <script>
