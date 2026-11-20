@@ -1,13 +1,13 @@
 {
- "name": "Calculadora de complejos",
- "short_name": "Complejos",
- "description": "Sistemas de ecuaciones con números complejos, fasores e impedancias.",
+ "name": "CalProX2",
+ "short_name": "CalProX2",
+ "description": "Calculadora general, de números complejos y de sistemas de ecuaciones.",
  "start_url": "./",
  "scope": "./",
  "display": "standalone",
  "orientation": "portrait",
- "background_color": "#f3f4f2",
- "theme_color": "#1c5bb8",
+ "background_color": "#ffffff",
+ "theme_color": "#ffffff",
  "lang": "es",
  "icons": [
   {

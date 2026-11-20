@@ -1,5 +1,5 @@
 // Guarda la calculadora en el telefono para que abra sin internet.
-const CACHE = 'calc-complejos-v4';
+const CACHE = 'calc-complejos-v5';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', (e) => {

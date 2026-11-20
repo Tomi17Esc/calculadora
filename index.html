@@ -2,59 +2,35 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
+<meta name="color-scheme" content="light">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Calculadora de números complejos</title>
+<title>CalProX2</title>
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#1c5bb8">
+<meta name="theme-color" content="#ffffff">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
   /* layout: one narrow column. Equations on top, answers right under them, loose operation and writing notes below. */
-  --paper:#f3f4f2;
+  --paper:#f5f7fa;
   --surface:#ffffff;
-  --ink:#15181c;
-  --muted:#5b646e;
-  --line:#d3d8dc;
+  --ink:#16191d;
+  --muted:#5f6772;
+  --line:#dde2e8;
   --accent:#1c5bb8;
   --accent-ink:#ffffff;
-  --tint:#e8eff9;
+  --tint:#edf3fb;
   --warn:#b3261e;
   --font-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
   --font-mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
   color-scheme:light;
 }
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --paper:#111316;
-    --surface:#1a1d22;
-    --ink:#eceef0;
-    --muted:#9aa3ad;
-    --line:#30353c;
-    --accent:#86b4ff;
-    --accent-ink:#0c1422;
-    --tint:#1b2940;
-    --warn:#ff8f85;
-    color-scheme:dark;
-  }
-}
-:root[data-theme="dark"]{
-  --paper:#111316;
-  --surface:#1a1d22;
-  --ink:#eceef0;
-  --muted:#9aa3ad;
-  --line:#30353c;
-  --accent:#86b4ff;
-  --accent-ink:#0c1422;
-  --tint:#1b2940;
-  --warn:#ff8f85;
-  color-scheme:dark;
-}
+html{background:#ffffff}
 *{box-sizing:border-box}
 html,body{margin:0}
 body{
-  background:var(--paper);
+  background:var(--surface);
   color:var(--ink);
   font-family:var(--font-body);
   font-size:16px;
@@ -226,7 +202,7 @@ select{
 </head>
 <body>
 <main>
-  <h1 class="vh">Calculadora</h1>
+  <h1 class="vh">CalProX2</h1>
   <div class="tabs" role="tablist" aria-label="Modos de la calculadora">
     <button class="tab" role="tab" id="t-calc" data-tab="calc" type="button" aria-selected="true">Calculadora</button>
     <button class="tab" role="tab" id="t-cx" data-tab="cx" type="button" aria-selected="false">Complejos</button>
