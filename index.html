@@ -72,17 +72,25 @@ h2{margin:0;font-size:1rem;font-weight:600}
   display:grid;place-items:center;
   font-family:var(--font-mono);font-size:.85rem;font-weight:500;
 }
-input[type="text"]{
+input[type="text"],textarea.eq-input{
   width:100%;min-width:0;
   font-family:var(--font-mono);font-size:17px;
   color:var(--ink);background:var(--paper);
   border:1px solid var(--line);border-radius:8px;
   padding:11px 12px;
 }
-input[type="text"]:focus-visible{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
-input[type="text"].bad{border-color:var(--warn)}
+textarea.eq-input{display:block;resize:none;overflow:hidden;line-height:1.4;overflow-wrap:anywhere}
+textarea.eq-input:focus-visible,input[type="text"]:focus-visible{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
+textarea.eq-input.bad,input[type="text"].bad{border-color:var(--warn)}
 .eq-err{grid-column:2 / 4;color:var(--warn);font-size:.85rem;margin-top:-2px}
 .eq-err:empty{display:none}
+.eq-pre{grid-column:2 / 4;display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;font-family:var(--font-mono);font-size:1rem;color:var(--ink);margin-top:-2px;overflow-x:auto}
+.eq-pre:empty{display:none}
+.eq-pre .lbl{font-family:var(--font-body);font-size:.75rem;color:var(--muted)}
+.eq-pre .mo{padding:0 3px}
+.fr{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 2px}
+.fr>span:first-child{border-bottom:1.5px solid currentColor;padding:0 4px 2px}
+.fr>span:last-child{padding:2px 4px 0}
 [hidden]{display:none !important}
 .vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px}
@@ -362,9 +370,27 @@ function tokenize(src) {
   const s = src.replace(/[−–—]/g, '-').replace(/[×·]/g, '*').replace(/÷/g, '/').replace(/°/g, '').replace(/²/g, '^2').replace(/⁻¹/g, '^(-1)');
   const out = [];
   let i = 0;
+  let pending = null, pendFrom = 0;
+  const push = (tok, from) => { pending = tok; pendFrom = from; out.push(tok); };
+  const seal = () => { if (pending) { pending.raw = s.slice(pendFrom, i).trim(); pending = null; } };
   while (i < s.length) {
+    seal();
     const ch = s[i];
     if (/\s/.test(ch)) { i++; continue; }
+    // Después de "/", un número complejo escrito como 8+6j o 4-5j es un solo número,
+    // igual que en el pizarrón: (V2-V1)/8+6j se lee (V2-V1)/(8+6j).
+    if (out.length && out[out.length - 1].t === '/') {
+      const m = /^\s*([+-]?)\s*(\d+\.?\d*|\.\d+)\s*([+-])\s*(?:(\d+\.?\d*|\.\d+)\s*j|j\s*(\d+\.?\d*|\.\d+)?)(?![A-Za-z0-9_.∠<(])/.exec(s.slice(i));
+      if (m) {
+        const from = i;
+        const re = parseFloat(m[2]) * (m[1] === '-' ? -1 : 1);
+        const mag = m[4] != null ? parseFloat(m[4]) : (m[5] != null ? parseFloat(m[5]) : 1);
+        i += m[0].length;
+        push({ t: 'num', v: C(re, mag * (m[3] === '-' ? -1 : 1)), group: true }, from);
+        continue;
+      }
+    }
+    const from = i;
     if (/[0-9.]/.test(ch)) {
       const m = NUM.exec(s.slice(i));
       if (!m) throw new CalcError('Hay un punto decimal suelto.');
@@ -373,37 +399,112 @@ function tokenize(src) {
       const p = POLAR.exec(s.slice(i));
       if (p) {
         const ang = parseFloat(p[1]) * Math.PI / 180;
-        out.push({ t: 'num', v: C(val * Math.cos(ang), val * Math.sin(ang)) });
+        push({ t: 'num', v: C(val * Math.cos(ang), val * Math.sin(ang)) }, from);
         i += p[0].length;
       } else if (s[i] === 'j' || (s[i] === 'i' && !isWord(s[i + 1]))) {
-        out.push({ t: 'num', v: C(0, val) });
+        push({ t: 'num', v: C(0, val) }, from);
         i++;
       } else {
-        out.push({ t: 'num', v: C(val, 0) });
+        push({ t: 'num', v: C(val, 0) }, from);
       }
       continue;
     }
     if (ch === 'j') {
       const m = NUM.exec(s.slice(i + 1));
-      if (m) { out.push({ t: 'num', v: C(0, parseFloat(m[0])) }); i += 1 + m[0].length; }
-      else { out.push({ t: 'num', v: C(0, 1) }); i++; }
+      if (m) { push({ t: 'num', v: C(0, parseFloat(m[0])) }, from); i += 1 + m[0].length; }
+      else { push({ t: 'num', v: C(0, 1) }, from); i++; }
       continue;
     }
-    if (ch === 'i' && !isWord(s[i + 1])) { out.push({ t: 'num', v: C(0, 1) }); i++; continue; }
+    if (ch === 'i' && !isWord(s[i + 1])) { push({ t: 'num', v: C(0, 1) }, from); i++; continue; }
     if (/[A-Za-z]/.test(ch)) {
       const m = /^[A-Za-z][A-Za-z0-9_]*/.exec(s.slice(i));
-      out.push({ t: 'id', name: m[0] });
+      push({ t: 'id', name: m[0] }, from);
       i += m[0].length;
       continue;
     }
-    if (ch === 'π') { out.push({ t: 'num', v: C(Math.PI, 0) }); i++; continue; }
-    if (ch === '√') { out.push({ t: 'id', name: 'sqrt' }); i++; continue; }
-    if ('+-*/()^'.includes(ch)) { out.push({ t: ch }); i++; continue; }
+    if (ch === 'π') { push({ t: 'num', v: C(Math.PI, 0) }, from); i++; continue; }
+    if (ch === '√') { push({ t: 'id', name: 'sqrt' }, from); i++; continue; }
+    if ('+-*/()^'.includes(ch)) { push({ t: ch }, from); i++; continue; }
     if (ch === '<' || ch === '∠') throw new CalcError('La forma polar va como magnitud∠ángulo, por ejemplo 20∠0.');
     if (ch === '=') throw new CalcError('Cada ecuación lleva un solo signo =.');
     throw new CalcError('No reconozco el símbolo "' + ch + '".');
   }
+  seal();
   return out;
+}
+
+/* ---- how an equation is read, drawn with real fractions ---- */
+function mathHTML(text) {
+  const esc = (x) => x.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const t = tokenize(text);
+  let p = 0;
+  const peek = () => t[p];
+  const numTxt = (raw) => esc(raw.replace(/-/g, '−').replace(/</g, '∠').replace(/\s+/g, '')).replace(/∠(.*)$/, '∠$1°').replace(/&lt;/g, '∠');
+  const idTxt = (n) => {
+    const m = /^([A-Za-z]+)(\d+)$/.exec(n);
+    return m ? esc(m[1]) + '<sub>' + m[2] + '</sub>' : esc(n);
+  };
+  const bare = (node) => (node.paren ? node.inner : node.html);
+  const frac = (a, b) => ({ html: '<span class="fr"><span>' + bare(a) + '</span><span>' + bare(b) + '</span></span>' });
+  function expr() {
+    let h = term().html;
+    while (peek() && (peek().t === '+' || peek().t === '-')) {
+      const op = t[p++].t;
+      h += '<span class="mo">' + (op === '+' ? '+' : '−') + '</span>' + term().html;
+    }
+    return { html: h };
+  }
+  function term() {
+    let a = unary();
+    for (;;) {
+      const k = peek();
+      if (!k) break;
+      if (k.t === '/') { p++; a = frac(a, unary()); }
+      else if (k.t === '*') { p++; a = { html: a.html + '<span class="mo">·</span>' + unary().html }; }
+      else if (k.t === 'num' || k.t === 'id' || k.t === '(') a = { html: a.html + power().html };
+      else break;
+    }
+    return a;
+  }
+  function unary() {
+    const k = peek();
+    if (k && (k.t === '-' || k.t === '+')) {
+      p++;
+      const a = unary();
+      return k.t === '-' ? { html: '−' + a.html } : a;
+    }
+    return power();
+  }
+  function power() {
+    const a = primary();
+    if (peek() && peek().t === '^') { p++; const b = unary(); return { html: a.html + '<sup>' + bare(b) + '</sup>' }; }
+    return a;
+  }
+  function primary() {
+    const k = t[p++];
+    if (!k) throw new CalcError('La expresión está incompleta.');
+    if (k.t === 'num') {
+      const h = numTxt(k.raw || '');
+      return k.group ? { html: '(' + h + ')', paren: true, inner: h } : { html: h };
+    }
+    if (k.t === 'id') {
+      if (peek() && peek().t === '(' && /^(sen|sin|cos|tan|sqrt|raiz|ln|log|exp|abs|conj)$/i.test(k.name)) {
+        p++;
+        const a = expr();
+        p++;
+        return { html: esc(k.name === 'sqrt' ? '√' : k.name) + '(' + a.html + ')' };
+      }
+      return { html: idTxt(k.name) };
+    }
+    if (k.t === '(') {
+      const a = expr();
+      p++;
+      return { html: '(' + a.html + ')', paren: true, inner: a.html };
+    }
+    throw new CalcError('No se entiende.');
+  }
+  const out = expr();
+  return out.html;
 }
 
 /* ---- linear forms: constant + sum of coefficient * unknown ---- */
@@ -686,13 +787,23 @@ if (typeof module !== 'undefined') module.exports = { parseEquation, parseLinear
   const pretty = (s) => s.replace(/-/g, '−');
   const message = (e) => (e instanceof CalcError ? e.message : 'No pude leer esto. Revisa cómo está escrito.');
 
+  // la casilla crece hacia abajo para que la ecuación larga se vea completa
+  function grow(t) {
+    t.style.height = 'auto';
+    if (t.offsetParent === null) return;  // oculta: se ajusta cuando se vuelva a ver
+    t.style.height = t.scrollHeight + 2 + 'px';
+  }
+  const growAll = () => eqsEl.querySelectorAll('textarea.eq-input').forEach(grow);
+  window.addEventListener('resize', growAll);
+  document.querySelector('.tabs').addEventListener('click', () => setTimeout(growAll, 0));
+
   function renderRows(focusIdx) {
     eqsEl.textContent = '';
     rows.forEach((txt, i) => {
       const row = el('div', 'eq');
       row.appendChild(el('span', 'eq-num', String(i + 1)));
-      const inp = el('input', 'eq-input');
-      inp.type = 'text';
+      const inp = el('textarea', 'eq-input');
+      inp.rows = 1;
       inp.id = 'eq-' + i;
       inp.value = txt;
       inp.dataset.idx = i;
@@ -708,11 +819,15 @@ if (typeof module !== 'undefined') module.exports = { parseEquation, parseLinear
       rm.dataset.rm = i;
       rm.setAttribute('aria-label', 'Quitar ecuación ' + (i + 1));
       row.appendChild(rm);
+      const pre = el('div', 'eq-pre');
+      pre.id = 'eq-pre-' + i;
+      row.appendChild(pre);
       const err = el('div', 'eq-err');
       err.id = 'eq-err-' + i;
       row.appendChild(err);
       eqsEl.appendChild(row);
     });
+    eqsEl.querySelectorAll('textarea.eq-input').forEach(grow);
     if (focusIdx != null) {
       const f = $('eq-' + focusIdx);
       if (f) { f.focus(); lastInput = f; }
@@ -847,6 +962,7 @@ if (typeof module !== 'undefined') module.exports = { parseEquation, parseLinear
     $('blk-opts').hidden = !b;
     eqsEl.hidden = b;
     $('add').hidden = b;
+    growAll();
   }
 
   function setStatus(kind, text) {
@@ -863,13 +979,18 @@ if (typeof module !== 'undefined') module.exports = { parseEquation, parseLinear
       forms = g.forms;
       bad = g.bad;
     } else rows.forEach((txt, i) => {
-      const inp = $('eq-' + i), err = $('eq-err-' + i);
+      const inp = $('eq-' + i), err = $('eq-err-' + i), pre = $('eq-pre-' + i);
       if (!inp) return;
+      if (pre) pre.textContent = '';
       if (!txt.trim()) { inp.classList.remove('bad'); err.textContent = ''; return; }
       try {
         forms.push(parseEquation(txt));
         inp.classList.remove('bad');
         err.textContent = '';
+        if (pre) {
+          const sides = txt.split('=');
+          pre.innerHTML = '<span class="lbl">Se lee:</span><span>' + mathHTML(sides[0]) + '</span><span class="mo">=</span><span>' + mathHTML(sides[1]) + '</span>';
+        }
       } catch (e) {
         bad++;
         inp.classList.add('bad');
@@ -919,11 +1040,12 @@ if (typeof module !== 'undefined') module.exports = { parseEquation, parseLinear
   eqsEl.addEventListener('input', (ev) => {
     const i = ev.target.dataset.idx;
     if (i == null) return;
-    rows[+i] = ev.target.value;
+    rows[+i] = ev.target.value.replace(/\n/g, ' ');
+    if (ev.target.tagName === 'TEXTAREA') grow(ev.target);
     compute();
     save();
   });
-  eqsEl.addEventListener('focusin', (ev) => { if (ev.target.matches('input')) lastInput = ev.target; });
+  eqsEl.addEventListener('focusin', (ev) => { if (ev.target.matches('input, textarea')) lastInput = ev.target; });
   eqsEl.addEventListener('keydown', (ev) => {
     if (ev.key !== 'Enter' || ev.target.dataset.idx == null) return;
     ev.preventDefault();
@@ -1023,6 +1145,7 @@ if (typeof module !== 'undefined') module.exports = { parseEquation, parseLinear
   applyMode();
   renderRows();
   compute();
+  setTimeout(growAll, 0);
 })();
 </script>
 <script>
